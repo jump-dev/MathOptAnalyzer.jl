@@ -69,7 +69,6 @@ Base.@kwdef mutable struct CoefficientsData
         Tuple{VariableRef,VariableRef,Float64}[]
     objective_quadratic_large::Vector{Tuple{VariableRef,VariableRef,Float64}} =
         Tuple{VariableRef,VariableRef,Float64}[]
-
 end
 
 function _update_range(range::Vector{Float64}, value::Number)
