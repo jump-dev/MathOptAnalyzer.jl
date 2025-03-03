@@ -14,7 +14,7 @@ model = Model()
 @variable(model, y >= 1e-9)
 @constraint(model, x + y <= 1e8)
 @constraint(model, x + y + 1e7 <= 2)
-@constraint(model, 1e6*x + 1e-5*y >= 2)
+@constraint(model, 1e6 * x + 1e-5 * y >= 2)
 @constraint(model, x <= 100)
 @objective(model, Max, x + y)
 

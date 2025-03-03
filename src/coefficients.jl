@@ -4,7 +4,6 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 Base.@kwdef mutable struct CoefficientsData
-
     threshold_dense_fill_in::Float64 = 0.10
     threshold_dense_entries::Int = 1000
     threshold_small::Float64 = 1e-5
@@ -13,10 +12,11 @@ Base.@kwdef mutable struct CoefficientsData
     number_of_variables::Int = 0
     number_of_constraints::Int = 0
 
-    constraint_info::Vector{Tuple{DataType, DataType, Int}} = Tuple{DataType, DataType, Int}[]
+    constraint_info::Vector{Tuple{DataType,DataType,Int}} =
+        Tuple{DataType,DataType,Int}[]
 
     matrix_nnz::Int = 0
-    
+
     matrix_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     bounds_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     rhs_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
@@ -27,20 +27,46 @@ Base.@kwdef mutable struct CoefficientsData
 
     empty_rows::Vector{ConstraintRef} = ConstraintRef[]
     bound_rows::Vector{ConstraintRef} = ConstraintRef[]
-    dense_rows::Vector{Tuple{ConstraintRef, Int}} = Tuple{ConstraintRef, Int}[]
+    dense_rows::Vector{Tuple{ConstraintRef,Int}} = Tuple{ConstraintRef,Int}[]
 
-    matrix_small::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
-    matrix_large::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
+    nonconvex_rows::Vector{ConstraintRef} = ConstraintRef[]
 
-    bounds_small::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
-    bounds_large::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
+    matrix_small::Vector{Tuple{ConstraintRef,VariableRef,Float64}} =
+        Tuple{ConstraintRef,VariableRef,Float64}[]
+    matrix_large::Vector{Tuple{ConstraintRef,VariableRef,Float64}} =
+        Tuple{ConstraintRef,VariableRef,Float64}[]
 
-    rhs_small::Vector{Tuple{ConstraintRef, Float64}} = Tuple{ConstraintRef, Float64}[]
-    rhs_large::Vector{Tuple{ConstraintRef, Float64}} = Tuple{ConstraintRef, Float64}[]
+    bounds_small::Vector{Tuple{VariableRef,Float64}} =
+        Tuple{VariableRef,Float64}[]
+    bounds_large::Vector{Tuple{VariableRef,Float64}} =
+        Tuple{VariableRef,Float64}[]
 
-    objective_small::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
-    objective_large::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
+    rhs_small::Vector{Tuple{ConstraintRef,Float64}} =
+        Tuple{ConstraintRef,Float64}[]
+    rhs_large::Vector{Tuple{ConstraintRef,Float64}} =
+        Tuple{ConstraintRef,Float64}[]
 
+    objective_small::Vector{Tuple{VariableRef,Float64}} =
+        Tuple{VariableRef,Float64}[]
+    objective_large::Vector{Tuple{VariableRef,Float64}} =
+        Tuple{VariableRef,Float64}[]
+
+    has_quadratic_objective::Bool = false
+    has_quadratic_constraints::Bool = false
+
+    objective_quadratic_range = sizehint!(Float64[1.0, 1.0], 2)
+    matrix_quadratic_range = sizehint!(Float64[1.0, 1.0], 2)
+
+    matrix_quadratic_small::Vector{
+        Tuple{ConstraintRef,VariableRef,VariableRef,Float64},
+    } = Tuple{ConstraintRef,VariableRef,VariableRef,Float64}[]
+    matrix_quadratic_large::Vector{
+        Tuple{ConstraintRef,VariableRef,VariableRef,Float64},
+    } = Tuple{ConstraintRef,VariableRef,VariableRef,Float64}[]
+    objective_quadratic_small::Vector{Tuple{VariableRef,VariableRef,Float64}} =
+        Tuple{VariableRef,VariableRef,Float64}[]
+    objective_quadratic_large::Vector{Tuple{VariableRef,VariableRef,Float64}} =
+        Tuple{VariableRef,VariableRef,Float64}[]
 end
 
 function _update_range(range::Vector{Float64}, value::Number)
@@ -49,7 +75,11 @@ function _update_range(range::Vector{Float64}, value::Number)
     return 1
 end
 
-function _get_constraint_data(data, ref::ConstraintRef, func::JuMP.GenericAffExpr)
+function _get_constraint_data(
+    data,
+    ref::ConstraintRef,
+    func::JuMP.GenericAffExpr,
+)
     if length(func.terms) == 1
         if first(values(func.terms)) ≈ 1.0
             push!(data.bound_rows, ref)
@@ -74,7 +104,8 @@ function _get_constraint_data(data, ref::ConstraintRef, func::JuMP.GenericAffExp
         push!(data.empty_rows, ref)
         return
     end
-    if nnz / data.number_of_variables > data.threshold_dense_fill_in && nnz > data.threshold_dense_entries
+    if nnz / data.number_of_variables > data.threshold_dense_fill_in &&
+       nnz > data.threshold_dense_entries
         push!(data.dense_rows, (ref, nnz))
     end
     data.matrix_nnz += nnz
@@ -135,7 +166,12 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set)
     return
 end
 
-function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.LessThan)
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericAffExpr,
+    set::MOI.LessThan,
+)
     coefficient = set.upper - func.constant
     if coefficient ≈ 0.0
         return
@@ -149,7 +185,12 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.Les
     return
 end
 
-function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.GreaterThan)
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericAffExpr,
+    set::MOI.GreaterThan,
+)
     coefficient = set.lower - func.constant
     if coefficient ≈ 0.0
         return
@@ -163,7 +204,12 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.Gre
     return
 end
 
-function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.EqualTo)
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericAffExpr,
+    set::MOI.EqualTo,
+)
     coefficient = set.value - func.constant
     if coefficient ≈ 0.0
         return
@@ -177,7 +223,12 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.Equ
     return
 end
 
-function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.Interval)
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericAffExpr,
+    set::MOI.Interval,
+)
     coefficient = set.upper - func.constant
     if !(coefficient ≈ 0.0)
         _update_range(data.rhs_range, coefficient)
@@ -214,7 +265,8 @@ function coefficient_analysis(model::JuMP.Model)
     data = CoefficientsData()
     data.number_of_variables = JuMP.num_variables(model)
     sizehint!(data.variables_in_constraints, data.number_of_variables)
-    data.number_of_constraints = JuMP.num_constraints(model, count_variable_in_set_constraints = false)
+    data.number_of_constraints =
+        JuMP.num_constraints(model, count_variable_in_set_constraints = false)
     _get_objective_data(data, JuMP.objective_function(model))
     for var in JuMP.all_variables(model)
         if JuMP.has_lower_bound(var)
@@ -318,14 +370,18 @@ function _print_numerical_stability_report(
     println(io, "    Large coefficients: ", data.threshold_large)
 
     println(io, "  Coefficient ranges:")
-    warnings = Tuple{String, String}[]
+    warnings = Tuple{String,String}[]
     _print_coefficients(io, "matrix", data, data.matrix_range, warnings)
     _print_coefficients(io, "objective", data, data.objective_range, warnings)
     _print_coefficients(io, "bounds", data, data.bounds_range, warnings)
     _print_coefficients(io, "rhs", data, data.rhs_range, warnings)
 
     # rows that should be bounds
-    println(io, "  Variables not in constraints: ", length(data.variables_not_in_constraints))
+    println(
+        io,
+        "  Variables not in constraints: ",
+        length(data.variables_not_in_constraints),
+    )
     println(io, "  Bound rows: ", length(data.bound_rows))
     println(io, "  Dense constraints: ", length(data.dense_rows))
     println(io, "  Empty constraints: ", length(data.empty_rows))
@@ -420,5 +476,3 @@ function Base.show(io::IO, data::CoefficientsData; verbose::Bool = false)
     _print_numerical_stability_report(io, data, warn = true, verbose = verbose)
     return
 end
-
-# TODO analyse quadratics
