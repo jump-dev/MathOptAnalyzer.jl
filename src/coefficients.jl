@@ -5,6 +5,11 @@
 
 Base.@kwdef mutable struct CoefficientsData
 
+    threshold_dense_fill_in::Float64 = 0.10
+    threshold_dense_entries::Int = 1000
+    threshold_small::Float64 = 1e-5
+    threshold_large::Float64 = 1e+5
+
     number_of_variables::Int = 0
     number_of_constraints::Int = 0
 
@@ -17,27 +22,34 @@ Base.@kwdef mutable struct CoefficientsData
     rhs_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     objective_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
 
-    threshold_dense_row::Float64 = 0.10
-    threshold_small_coefficient::Float64 = 1e-5
-    threshold_large_coefficient::Float64 = 1e+5
+    variables_in_constraints::Set{VariableRef} = Set{VariableRef}()
+    variables_not_in_constraints::Vector{VariableRef} = VariableRef[]
 
+    empty_rows::Vector{ConstraintRef} = ConstraintRef[]
     bound_rows::Vector{ConstraintRef} = ConstraintRef[]
     dense_rows::Vector{Tuple{ConstraintRef, Int}} = Tuple{ConstraintRef, Int}[]
-    small_coefficients::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
-    large_coefficients::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
+
+    matrix_small::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
+    matrix_large::Vector{Tuple{ConstraintRef, VariableRef, Float64}} = Tuple{ConstraintRef, VariableRef, Float64}[]
+
+    bounds_small::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
+    bounds_large::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
+
+    rhs_small::Vector{Tuple{ConstraintRef, Float64}} = Tuple{ConstraintRef, Float64}[]
+    rhs_large::Vector{Tuple{ConstraintRef, Float64}} = Tuple{ConstraintRef, Float64}[]
+
+    objective_small::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
+    objective_large::Vector{Tuple{VariableRef, Float64}} = Tuple{VariableRef, Float64}[]
 
 end
 
 function _update_range(range::Vector{Float64}, value::Number)
-    if !(value ≈ 0.0)
-        range[1] = min(range[1], abs(value))
-        range[2] = max(range[2], abs(value))
-        return true
-    end
-    return false
+    range[1] = min(range[1], abs(value))
+    range[2] = max(range[2], abs(value))
+    return 1
 end
 
-function _get_data(data, ref::ConstraintRef, func::JuMP.GenericAffExpr)
+function _get_constraint_data(data, ref::ConstraintRef, func::JuMP.GenericAffExpr)
     if length(func.terms) == 1
         if first(values(func.terms)) ≈ 1.0
             push!(data.bound_rows, ref)
@@ -47,56 +59,152 @@ function _get_data(data, ref::ConstraintRef, func::JuMP.GenericAffExpr)
     end
     nnz = 0
     for (variable, coefficient) in func.terms
-        nnz += _update_range(data.matrix_range, coefficient)
-        if abs(coefficient) < data.threshold_small_coefficient
-            push!(data.small_coefficients, (ref, variable, coefficient))
-        elseif abs(coefficient) > data.threshold_large_coefficient
-            push!(data.large_coefficients, (ref, variable, coefficient))
+        if coefficient ≈ 0.0
+            continue
         end
+        nnz += _update_range(data.matrix_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.matrix_small, (ref, variable, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.matrix_large, (ref, variable, coefficient))
+        end
+        push!(data.variables_in_constraints, variable)
     end
-    if nnz / data.number_of_variables > data.threshold_dense_row && nnz > 100
+    if nnz == 0
+        push!(data.empty_rows, ref)
+        return
+    end
+    if nnz / data.number_of_variables > data.threshold_dense_fill_in && nnz > data.threshold_dense_entries
         push!(data.dense_rows, (ref, nnz))
     end
     data.matrix_nnz += nnz
     return
 end
 
-function _update_range(range::Vector, func::JuMP.GenericAffExpr)
-    _update_range(range, func.constant)
-    return true
+# function _update_range(range::Vector, func::JuMP.GenericAffExpr)
+#     _update_range(range, func.constant)
+#     return true
+# end
+
+function _get_variable_data(data, variable, coefficient::Number)
+    if !(coefficient ≈ 0.0)
+        _update_range(data.bounds_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.bounds_small, (variable, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.bounds_large, (variable, coefficient))
+        end
+    end
+    return
 end
 
-function _get_data(data, func::Vector{JuMP.GenericAffExpr}, set)
+function _get_objective_data(data, func::JuMP.GenericAffExpr)
+    nnz = 0
+    for (variable, coefficient) in func.terms
+        if coefficient ≈ 0.0
+            continue
+        end
+        nnz += _update_range(data.objective_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.objective_small, (variable, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.objective_large, (variable, coefficient))
+        end
+    end
+    return
+end
+
+function _get_constraint_data(data, func::Vector{JuMP.GenericAffExpr}, set)
     for f in func
-        _update_range(data, f, set)
+        _get_constraint_data(data, ref, f, set)
     end
     return true
 end
 
-function _get_data(data, func::JuMP.GenericAffExpr, set)
-    _update_range(data.rhs_range, func.constant)
-    return true
+function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set)
+    coefficient = func.constant
+    if coefficient ≈ 0.0
+        return
+    end
+    _update_range(data.rhs_range, coefficient)
+    if abs(coefficient) < data.threshold_small
+        push!(data.rhs_small, (ref, coefficient))
+    elseif abs(coefficient) > data.threshold_large
+        push!(data.rhs_large, (ref, coefficient))
+    end
+    return
 end
 
-function _get_data(data, func::JuMP.GenericAffExpr, set::MOI.LessThan)
-    _update_range(data.rhs_range, set.upper - func.constant)
-    return true
+function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.LessThan)
+    coefficient = set.upper - func.constant
+    if coefficient ≈ 0.0
+        return
+    end
+    _update_range(data.rhs_range, coefficient)
+    if abs(coefficient) < data.threshold_small
+        push!(data.rhs_small, (ref, coefficient))
+    elseif abs(coefficient) > data.threshold_large
+        push!(data.rhs_large, (ref, coefficient))
+    end
+    return
 end
 
-function _get_data(data, func::JuMP.GenericAffExpr, set::MOI.GreaterThan)
-    _update_range(data.rhs_range, set.lower - func.constant)
-    return true
+function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.GreaterThan)
+    coefficient = set.lower - func.constant
+    if coefficient ≈ 0.0
+        return
+    end
+    _update_range(data.rhs_range, coefficient)
+    if abs(coefficient) < data.threshold_small
+        push!(data.rhs_small, (ref, coefficient))
+    elseif abs(coefficient) > data.threshold_large
+        push!(data.rhs_large, (ref, coefficient))
+    end
+    return
 end
 
-function _get_data(data, func::JuMP.GenericAffExpr, set::MOI.EqualTo)
-    _update_range(data.rhs_range, set.value - func.constant)
-    return true
+function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.EqualTo)
+    coefficient = set.value - func.constant
+    if coefficient ≈ 0.0
+        return
+    end
+    _update_range(data.rhs_range, coefficient)
+    if abs(coefficient) < data.threshold_small
+        push!(data.rhs_small, (ref, coefficient))
+    elseif abs(coefficient) > data.threshold_large
+        push!(data.rhs_large, (ref, coefficient))
+    end
+    return
 end
 
-function _get_data(data, func::JuMP.GenericAffExpr, set::MOI.Interval)
-    _update_range(data.rhs_range, set.upper - func.constant)
-    _update_range(data.rhs_range, set.lower - func.constant)
-    return true
+function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set::MOI.Interval)
+    coefficient = set.upper - func.constant
+    if !(coefficient ≈ 0.0)
+        _update_range(data.rhs_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.rhs_small, (ref, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.rhs_large, (ref, coefficient))
+        end
+    end
+    coefficient = set.lower - func.constant
+    if coefficient ≈ 0.0
+        return
+    end
+    _update_range(data.rhs_range, coefficient)
+    if abs(coefficient) < data.threshold_small
+        push!(data.rhs_small, (ref, coefficient))
+    elseif abs(coefficient) > data.threshold_large
+        push!(data.rhs_large, (ref, coefficient))
+    end
+    return
+end
+
+function _get_constraint_data(data, func::Vector{VariableRef})
+    for var in func
+        push!(data.variables_in_constraints, var)
+    end
+    return
 end
 
 # Default fallback for unsupported constraints.
@@ -105,14 +213,15 @@ _update_range(data, func, set) = false
 function coefficient_analysis(model::JuMP.Model)
     data = CoefficientsData()
     data.number_of_variables = JuMP.num_variables(model)
+    sizehint!(data.variables_in_constraints, data.number_of_variables)
     data.number_of_constraints = JuMP.num_constraints(model, count_variable_in_set_constraints = false)
-    _update_range(data.objective_range, JuMP.objective_function(model))
+    _get_objective_data(data, JuMP.objective_function(model))
     for var in JuMP.all_variables(model)
         if JuMP.has_lower_bound(var)
-            _update_range(data.bounds_range, JuMP.lower_bound(var))
+            _get_variable_data(data, var, JuMP.lower_bound(var))
         end
         if JuMP.has_upper_bound(var)
-            _update_range(data.bounds_range, JuMP.upper_bound(var))
+            _get_variable_data(data, var, JuMP.upper_bound(var))
         end
     end
     for (F, S) in JuMP.list_of_constraint_types(model)
@@ -121,16 +230,33 @@ function coefficient_analysis(model::JuMP.Model)
             push!(data.constraint_info, (F, S, n))
         end
         F == JuMP.VariableRef && continue
-        F == Vector{JuMP.VariableRef} && continue
+        if F == Vector{JuMP.VariableRef}
+            for con in JuMP.all_constraints(model, F, S)
+                con_obj = JuMP.constraint_object(con)
+                _get_constraint_data(data, con_obj.func)
+            end
+            continue
+        end
         for con in JuMP.all_constraints(model, F, S)
             con_obj = JuMP.constraint_object(con)
-            _get_data(data, con, con_obj.func)
-            _get_data(data, con_obj.func, con_obj.set)
+            _get_constraint_data(data, con, con_obj.func)
+            _get_constraint_data(data, con, con_obj.func, con_obj.set)
+        end
+    end
+    for var in JuMP.all_variables(model)
+        if !(var in data.variables_in_constraints)
+            push!(data.variables_not_in_constraints, var)
         end
     end
     sort!(data.dense_rows, by = x -> x[2], rev = true)
-    sort!(data.small_coefficients, by = x -> abs(x[3]))
-    sort!(data.large_coefficients, by = x -> abs(x[3]), rev = true)
+    sort!(data.matrix_small, by = x -> abs(x[3]))
+    sort!(data.matrix_large, by = x -> abs(x[3]), rev = true)
+    sort!(data.bounds_small, by = x -> abs(x[2]))
+    sort!(data.bounds_large, by = x -> abs(x[2]), rev = true)
+    sort!(data.rhs_small, by = x -> abs(x[2]))
+    sort!(data.rhs_large, by = x -> abs(x[2]), rev = true)
+    sort!(data.objective_small, by = x -> abs(x[2]))
+    sort!(data.objective_large, by = x -> abs(x[2]), rev = true)
     return data
 end
 
@@ -157,10 +283,10 @@ function _print_coefficients(
         rpad(string(name, " range"), 17),
         _stringify_bounds(range),
     )
-    if range[1] < data.threshold_small_coefficient
+    if range[1] < data.threshold_small
         push!(warnings, (name, "small"))
     end
-    if range[2] > data.threshold_large_coefficient
+    if range[2] > data.threshold_large
         push!(warnings, (name, "large"))
     end
     return
@@ -172,14 +298,24 @@ function _print_numerical_stability_report(
     warn::Bool = true,
     verbose::Bool = true,
     max_list::Int = 10,
+    names = true,
 )
     println(io, "Numerical stability report:")
     println(io, "  Number of variables: ", data.number_of_variables)
     println(io, "  Number of constraints: ", data.number_of_constraints)
     println(io, "  Number of nonzeros in matrix: ", data.matrix_nnz)
-    println(io, "  Threshold for dense rows: ", data.threshold_dense_row)
-    println(io, "  Threshold for small coefficients: ", data.threshold_small_coefficient)
-    println(io, "  Threshold for large coefficients: ", data.threshold_large_coefficient)
+
+    # types
+    println(io, "  Constraint types:")
+    for (F, S, n) in data.constraint_info
+        println(io, "    * ", F, "-", S, ": ", n)
+    end
+
+    println(io, "  Thresholds:")
+    println(io, "    Dense rows (fill-in): ", data.threshold_dense_fill_in)
+    println(io, "    Dense rows (entries): ", data.threshold_dense_entries)
+    println(io, "    Small coefficients: ", data.threshold_small)
+    println(io, "    Large coefficients: ", data.threshold_large)
 
     println(io, "  Coefficient ranges:")
     warnings = Tuple{String, String}[]
@@ -188,59 +324,73 @@ function _print_numerical_stability_report(
     _print_coefficients(io, "bounds", data, data.bounds_range, warnings)
     _print_coefficients(io, "rhs", data, data.rhs_range, warnings)
 
-    # types
-    println(io, "  Constraint types:")
-    for (F, S, n) in data.constraint_info
-        println(io, "    * ", F, "-", S, ": ", n)
-    end
-
     # rows that should be bounds
+    println(io, "  Variables not in constraints: ", length(data.variables_not_in_constraints))
     println(io, "  Bound rows: ", length(data.bound_rows))
-    if verbose
-        c = 0
-        for ref in data.bound_rows
-            println(io, "    * ", ref)
-            c += 1
-            if c >= max_list
-                break
-            end
-        end
-    end
-
     println(io, "  Dense constraints: ", length(data.dense_rows))
-    println(io, "  Small coefficients: ", length(data.small_coefficients))
-    println(io, "  Large coefficients: ", length(data.large_coefficients))
+    println(io, "  Empty constraints: ", length(data.empty_rows))
+    println(io, "  Coefficients:")
+    println(io, "    matrix small: ", length(data.matrix_small))
+    println(io, "    matrix large: ", length(data.matrix_large))
+    println(io, "    bounds small: ", length(data.bounds_small))
+    println(io, "    bounds large: ", length(data.bounds_large))
+    println(io, "    rhs small: ", length(data.rhs_small))
+    println(io, "    rhs large: ", length(data.rhs_large))
+    println(io, "    objective small: ", length(data.objective_small))
+    println(io, "    objective large: ", length(data.objective_large))
 
     if verbose
-        println(io, "")
-        println(io, "  Dense constraints:")
-        c = 0
-        for (ref, nnz) in data.dense_rows
-            println(io, "    * ", ref, ": ", nnz)
-            c += 1
-            if c >= max_list
-                break
-            end
+        println(io, "\n  Variables not in constraints:")
+        for var in first(data.variables_not_in_constraints, max_list)
+            println(io, "    * ", var, _name_string(var, names))
         end
-        println(io, "")
-        println(io, "  Small coefficients:")
-        c = 0
-        for (ref, var, coeff) in data.small_coefficients
-            println(io, "    * ", ref, ": ", var, " -> ", coeff)
-            c += 1
-            if c >= max_list
-                break
-            end
+        println(io, "\n  Bound rows:")
+        for ref in first(data.bound_rows, max_list)
+            println(io, "    * ", _name_string(ref, names), name_str)
         end
-        println(io, "")
-        println(io, "  Large coefficients:")
-        c = 0
-        for (ref, var, coeff) in data.large_coefficients
-            println(io, "    * ", ref, ": ", var, " -> ", coeff)
-            c += 1
-            if c >= max_list
-                break
-            end
+        println(io, "\n  Dense constraints:")
+        for (ref, nnz) in first(data.dense_rows, max_list)
+            println(io, "    * ", ref, _name_string(ref, names), ": ", nnz)
+        end
+        println(io, "\n  Empty constraints:")
+        for ref in first(data.empty_rows, max_list)
+            println(io, "    * ", _name_string(ref, names), name_str)
+        end
+        println(io, "\n  Small matrix coefficients:")
+        for (ref, var, coeff) in first(data.matrix_small, max_list)
+            con_str = _name_string(ref, names)
+            var_str = _name_string(var, names)
+            println(io, "    * ", ref, con_str, "-", var, var_str, ": ", coeff)
+        end
+        println(io, "\n  Large matrix coefficients:")
+        for (ref, var, coeff) in first(data.matrix_large, max_list)
+            con_str = _name_string(ref, names)
+            var_str = _name_string(var, names)
+            println(io, "    * ", ref, con_str, "-", var, var_str, ": ", coeff)
+        end
+        println(io, "\n  Small bounds coefficients:")
+        for (var, coeff) in first(data.bounds_small, max_list)
+            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        end
+        println(io, "\n  Large bounds coefficients:")
+        for (var, coeff) in first(data.bounds_large, max_list)
+            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        end
+        println(io, "\n  Small rhs coefficients:")
+        for (ref, coeff) in first(data.rhs_small, max_list)
+            println(io, "    * ", ref, _name_string(ref, names), ": ", coeff)
+        end
+        println(io, "\n  Large rhs coefficients:")
+        for (ref, coeff) in first(data.rhs_large, max_list)
+            println(io, "    * ", ref, _name_string(ref, names), ": ", coeff)
+        end
+        println(io, "\n  Small objective coefficients:")
+        for (var, coeff) in first(data.objective_small, max_list)
+            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        end
+        println(io, "\n  Large objective coefficients:")
+        for (var, coeff) in first(data.objective_large, max_list)
+            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
         end
     end
 
@@ -259,13 +409,16 @@ function _print_numerical_stability_report(
     return
 end
 
+function _name_string(ref, names)
+    if names
+        return string(" (", JuMP.name(ref), ')')
+    end
+    return ""
+end
+
 function Base.show(io::IO, data::CoefficientsData; verbose::Bool = false)
     _print_numerical_stability_report(io, data, warn = true, verbose = verbose)
     return
 end
 
-# TODO add names in the output
-# TODO add lists for rhs, bounds and obj coefs
 # TODO analyse quadratics
-# check variable that are not in constraints
-# check start poitn in bounds
