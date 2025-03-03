@@ -29,8 +29,6 @@ Base.@kwdef mutable struct CoefficientsData
     bound_rows::Vector{ConstraintRef} = ConstraintRef[]
     dense_rows::Vector{Tuple{ConstraintRef,Int}} = Tuple{ConstraintRef,Int}[]
 
-    nonconvex_rows::Vector{ConstraintRef} = ConstraintRef[]
-
     matrix_small::Vector{Tuple{ConstraintRef,VariableRef,Float64}} =
         Tuple{ConstraintRef,VariableRef,Float64}[]
     matrix_large::Vector{Tuple{ConstraintRef,VariableRef,Float64}} =
@@ -53,9 +51,13 @@ Base.@kwdef mutable struct CoefficientsData
 
     has_quadratic_objective::Bool = false
     has_quadratic_constraints::Bool = false
+    sense::JuMP.OptimizationSense = JuMP.FEASIBILITY_SENSE
 
     objective_quadratic_range = sizehint!(Float64[1.0, 1.0], 2)
     matrix_quadratic_range = sizehint!(Float64[1.0, 1.0], 2)
+
+    nonconvex_objective::Bool = false
+    nonconvex_rows::Vector{ConstraintRef} = ConstraintRef[]
 
     matrix_quadratic_small::Vector{
         Tuple{ConstraintRef,VariableRef,VariableRef,Float64},
@@ -67,6 +69,7 @@ Base.@kwdef mutable struct CoefficientsData
         Tuple{VariableRef,VariableRef,Float64}[]
     objective_quadratic_large::Vector{Tuple{VariableRef,VariableRef,Float64}} =
         Tuple{VariableRef,VariableRef,Float64}[]
+
 end
 
 function _update_range(range::Vector{Float64}, value::Number)
@@ -112,10 +115,29 @@ function _get_constraint_data(
     return
 end
 
-# function _update_range(range::Vector, func::JuMP.GenericAffExpr)
-#     _update_range(range, func.constant)
-#     return true
-# end
+function _get_constraint_data(
+    data,
+    ref::ConstraintRef,
+    func::JuMP.GenericQuadExpr,
+)
+    _get_constraint_data(data, ref, func.aff)
+    nnz = 0
+    for ((v1, v2), coefficient) in func.terms
+        if coefficient ≈ 0.0
+            continue
+        end
+        nnz += _update_range(data.matrix_quadratic_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.matrix_quadratic_small, (ref, v1, v2, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.matrix_quadratic_large, (ref, v1, v2, coefficient))
+        end
+        push!(data.variables_in_constraints, v1)
+        push!(data.variables_in_constraints, v2)
+    end
+    data.has_quadratic_constraints = true
+    return
+end
 
 function _get_variable_data(data, variable, coefficient::Number)
     if !(coefficient ≈ 0.0)
@@ -145,7 +167,61 @@ function _get_objective_data(data, func::JuMP.GenericAffExpr)
     return
 end
 
+function _get_objective_data(data, func::JuMP.GenericQuadExpr)
+    _get_objective_data(data, func.aff)
+    nnz = 0
+    for ((v1, v2), coefficient) in func.terms
+        if coefficient ≈ 0.0
+            continue
+        end
+        nnz += _update_range(data.objective_quadratic_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(data.objective_quadratic_small, (v1, v2, coefficient))
+        elseif abs(coefficient) > data.threshold_large
+            push!(data.objective_quadratic_large, (v1, v2, coefficient))
+        end
+    end
+    data.has_quadratic_objective = true
+    if data.sense == JuMP.MAX_SENSE
+        data.nonconvex_objective = !_quadratic_vexity(func, -1)
+    elseif data.sense == JuMP.MIN_SENSE
+        data.nonconvex_objective = !_quadratic_vexity(func, 1)
+    end
+    return
+end
+
+function _quadratic_vexity(func::JuMP.GenericQuadExpr, sign::Int)
+    variables = OrderedCollections.OrderedSet{VariableRef}()
+    sizehint!(variables, 2 * length(func.terms))
+    for (v1, v2) in keys(func.terms)
+        push!(variables, v1)
+        push!(variables, v2)
+    end
+    var_map = Dict{VariableRef,Int}()
+    for (idx, var) in enumerate(variables)
+        var_map[var] = idx
+    end
+    matrix = zeros(length(variables), length(variables))
+    for ((v1, v2), coefficient) in func.terms
+        matrix[var_map[v1], var_map[v2]] += sign * coefficient / 2
+        matrix[var_map[v2], var_map[v1]] += sign * coefficient / 2
+    end
+    ret = LinearAlgebra.cholesky!(
+        LinearAlgebra.Symmetric(matrix),
+        LinearAlgebra.RowMaximum(),
+        check = false,
+    )
+    return LinearAlgebra.issuccess(ret)
+end
+
 function _get_constraint_data(data, func::Vector{JuMP.GenericAffExpr}, set)
+    for f in func
+        _get_constraint_data(data, ref, f, set)
+    end
+    return true
+end
+
+function _get_constraint_data(data, func::Vector{JuMP.GenericQuadExpr}, set)
     for f in func
         _get_constraint_data(data, ref, f, set)
     end
@@ -162,6 +238,25 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set)
         push!(data.rhs_small, (ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
         push!(data.rhs_large, (ref, coefficient))
+    end
+    return
+end
+
+function _get_constraint_data(data, ref, func::JuMP.GenericQuadExpr, set)
+    _get_constraint_data(data, ref, func.aff, set)
+    # skip additional checks for quadratics in non-scalar simples sets
+    return
+end
+
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericQuadExpr,
+    set::MOI.LessThan,
+)
+    _get_constraint_data(data, ref, func.aff, set)
+    if !_quadratic_vexity(func, 1)
+        push!(data.nonconvex_rows, ref)
     end
     return
 end
@@ -188,6 +283,19 @@ end
 function _get_constraint_data(
     data,
     ref,
+    func::JuMP.GenericQuadExpr,
+    set::MOI.GreaterThan,
+)
+    _get_constraint_data(data, ref, func.aff, set)
+    if !_quadratic_vexity(func, -1)
+        push!(data.nonconvex_rows, ref)
+    end
+    return
+end
+
+function _get_constraint_data(
+    data,
+    ref,
     func::JuMP.GenericAffExpr,
     set::MOI.GreaterThan,
 )
@@ -201,6 +309,17 @@ function _get_constraint_data(
     elseif abs(coefficient) > data.threshold_large
         push!(data.rhs_large, (ref, coefficient))
     end
+    return
+end
+
+function _get_constraint_data(
+    data,
+    ref,
+    func::JuMP.GenericQuadExpr,
+    set::Union{MOI.EqualTo,MOI.Interval},
+)
+    _get_constraint_data(data, ref, func.aff, set)
+    push!(data.nonconvex_rows, ref)
     return
 end
 
@@ -263,6 +382,7 @@ _update_range(data, func, set) = false
 
 function coefficient_analysis(model::JuMP.Model)
     data = CoefficientsData()
+    data.sense = JuMP.objective_sense(model)
     data.number_of_variables = JuMP.num_variables(model)
     sizehint!(data.variables_in_constraints, data.number_of_variables)
     data.number_of_constraints =
@@ -369,12 +489,40 @@ function _print_numerical_stability_report(
     println(io, "    Small coefficients: ", data.threshold_small)
     println(io, "    Large coefficients: ", data.threshold_large)
 
+    if data.has_quadratic_objective
+        println(io, "\n  Objective is quadratic:")
+        if data.nonconvex_objective
+            println(io, "  Objective is nonconvex (numerically)")
+        else
+            println(io, "  Objective is convex (numerically)")
+        end
+        println(io, "")
+    end
+
     println(io, "  Coefficient ranges:")
     warnings = Tuple{String,String}[]
     _print_coefficients(io, "matrix", data, data.matrix_range, warnings)
     _print_coefficients(io, "objective", data, data.objective_range, warnings)
     _print_coefficients(io, "bounds", data, data.bounds_range, warnings)
     _print_coefficients(io, "rhs", data, data.rhs_range, warnings)
+    if data.has_quadratic_objective
+        _print_coefficients(
+            io,
+            "objective q",
+            data,
+            data.objective_quadratic_range,
+            warnings,
+        )
+    end
+    if data.has_quadratic_constraints
+        _print_coefficients(
+            io,
+            "matrix q",
+            data,
+            data.matrix_quadratic_range,
+            warnings,
+        )
+    end
 
     # rows that should be bounds
     println(
@@ -385,6 +533,9 @@ function _print_numerical_stability_report(
     println(io, "  Bound rows: ", length(data.bound_rows))
     println(io, "  Dense constraints: ", length(data.dense_rows))
     println(io, "  Empty constraints: ", length(data.empty_rows))
+    if data.has_quadratic_objective
+        println(io, "  Nonconvex constraints: ", length(data.nonconvex_rows))
+    end
     println(io, "  Coefficients:")
     println(io, "    matrix small: ", length(data.matrix_small))
     println(io, "    matrix large: ", length(data.matrix_large))
@@ -447,6 +598,76 @@ function _print_numerical_stability_report(
         println(io, "\n  Large objective coefficients:")
         for (var, coeff) in first(data.objective_large, max_list)
             println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        end
+        if data.has_quadratic_objective
+            println(io, "\n  Small objective quadratic coefficients:")
+            for (v1, v2, coeff) in
+                first(data.objective_quadratic_small, max_list)
+                println(
+                    io,
+                    "    * ",
+                    v1,
+                    _name_string(v1, names),
+                    "-",
+                    v2,
+                    _name_string(v2, names),
+                    ": ",
+                    coeff,
+                )
+            end
+            println(io, "\n  Large objective quadratic coefficients:")
+            for (v1, v2, coeff) in
+                first(data.objective_quadratic_large, max_list)
+                println(
+                    io,
+                    "    * ",
+                    v1,
+                    _name_string(v1, names),
+                    "-",
+                    v2,
+                    _name_string(v2, names),
+                    ": ",
+                    coeff,
+                )
+            end
+        end
+        if data.has_quadratic_constraints
+            println(io, "\n  Small matrix quadratic coefficients:")
+            for (ref, v1, v2, coeff) in
+                first(data.matrix_quadratic_small, max_list)
+                println(
+                    io,
+                    "    * ",
+                    ref,
+                    _name_string(ref, names),
+                    "-",
+                    v1,
+                    _name_string(v1, names),
+                    "-",
+                    v2,
+                    _name_string(v2, names),
+                    ": ",
+                    coeff,
+                )
+            end
+            println(io, "\n  Large matrix quadratic coefficients:")
+            for (ref, v1, v2, coeff) in
+                first(data.matrix_quadratic_large, max_list)
+                println(
+                    io,
+                    "    * ",
+                    ref,
+                    _name_string(ref, names),
+                    "-",
+                    v1,
+                    _name_string(v1, names),
+                    "-",
+                    v2,
+                    _name_string(v2, names),
+                    ": ",
+                    coeff,
+                )
+            end
         end
     end
 

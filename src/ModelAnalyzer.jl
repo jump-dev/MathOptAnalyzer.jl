@@ -9,6 +9,7 @@ using JuMP
 import LinearAlgebra
 import Printf
 import MathOptInterface as MOI
+import OrderedCollections
 
 include("coefficients.jl")
 
