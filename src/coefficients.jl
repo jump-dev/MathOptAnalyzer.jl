@@ -83,7 +83,7 @@ function _get_constraint_data(
     func::JuMP.GenericAffExpr,
 )
     if length(func.terms) == 1
-        if first(values(func.terms)) ≈ 1.0
+        if isapprox(first(values(func.terms)), 1.0, rtol = sqrt(eps(Float64)))
             push!(data.bound_rows, ref)
             data.matrix_nnz += 1
             return
@@ -91,7 +91,7 @@ function _get_constraint_data(
     end
     nnz = 0
     for (variable, coefficient) in func.terms
-        if coefficient ≈ 0.0
+        if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.matrix_range, coefficient)
@@ -122,7 +122,7 @@ function _get_constraint_data(
     _get_constraint_data(data, ref, func.aff)
     nnz = 0
     for ((v1, v2), coefficient) in func.terms
-        if coefficient ≈ 0.0
+        if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.matrix_quadratic_range, coefficient)
@@ -139,7 +139,7 @@ function _get_constraint_data(
 end
 
 function _get_variable_data(data, variable, coefficient::Number)
-    if !(coefficient ≈ 0.0)
+    if !(iszero(coefficient))
         _update_range(data.bounds_range, coefficient)
         if abs(coefficient) < data.threshold_small
             push!(data.bounds_small, (variable, coefficient))
@@ -153,7 +153,7 @@ end
 function _get_objective_data(data, func::JuMP.GenericAffExpr)
     nnz = 0
     for (variable, coefficient) in func.terms
-        if coefficient ≈ 0.0
+        if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.objective_range, coefficient)
@@ -170,7 +170,7 @@ function _get_objective_data(data, func::JuMP.GenericQuadExpr)
     _get_objective_data(data, func.aff)
     nnz = 0
     for ((v1, v2), coefficient) in func.terms
-        if coefficient ≈ 0.0
+        if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.objective_quadratic_range, coefficient)
@@ -229,7 +229,7 @@ end
 
 function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set)
     coefficient = func.constant
-    if coefficient ≈ 0.0
+    if iszero(coefficient)
         return
     end
     _update_range(data.rhs_range, coefficient)
@@ -267,7 +267,7 @@ function _get_constraint_data(
     set::MOI.LessThan,
 )
     coefficient = set.upper - func.constant
-    if coefficient ≈ 0.0
+    if iszero(coefficient)
         return
     end
     _update_range(data.rhs_range, coefficient)
@@ -299,7 +299,7 @@ function _get_constraint_data(
     set::MOI.GreaterThan,
 )
     coefficient = set.lower - func.constant
-    if coefficient ≈ 0.0
+    if iszero(coefficient)
         return
     end
     _update_range(data.rhs_range, coefficient)
@@ -329,7 +329,7 @@ function _get_constraint_data(
     set::MOI.EqualTo,
 )
     coefficient = set.value - func.constant
-    if coefficient ≈ 0.0
+    if iszero(coefficient)
         return
     end
     _update_range(data.rhs_range, coefficient)
@@ -348,7 +348,7 @@ function _get_constraint_data(
     set::MOI.Interval,
 )
     coefficient = set.upper - func.constant
-    if !(coefficient ≈ 0.0)
+    if !(iszero(coefficient))
         _update_range(data.rhs_range, coefficient)
         if abs(coefficient) < data.threshold_small
             push!(data.rhs_small, (ref, coefficient))
@@ -357,7 +357,7 @@ function _get_constraint_data(
         end
     end
     coefficient = set.lower - func.constant
-    if coefficient ≈ 0.0
+    if iszero(coefficient)
         return
     end
     _update_range(data.rhs_range, coefficient)
