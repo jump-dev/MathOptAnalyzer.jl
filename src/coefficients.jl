@@ -80,7 +80,8 @@ end
 function _get_constraint_data(
     data,
     ref::ConstraintRef,
-    func::JuMP.GenericAffExpr,
+    func::JuMP.GenericAffExpr;
+    ignore_empty = false,
 )
     if length(func.terms) == 1
         if isapprox(first(values(func.terms)), 1.0, rtol = sqrt(eps(Float64)))
@@ -103,7 +104,9 @@ function _get_constraint_data(
         push!(data.variables_in_constraints, variable)
     end
     if nnz == 0
-        push!(data.empty_rows, ref)
+        if !ignore_empty
+            push!(data.empty_rows, ref)
+        end
         return
     end
     if nnz / data.number_of_variables > data.threshold_dense_fill_in &&
@@ -119,22 +122,22 @@ function _get_constraint_data(
     ref::ConstraintRef,
     func::JuMP.GenericQuadExpr,
 )
-    _get_constraint_data(data, ref, func.aff)
     nnz = 0
-    for ((v1, v2), coefficient) in func.terms
+    for (v, coefficient) in func.terms
         if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.matrix_quadratic_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.matrix_quadratic_small, (ref, v1, v2, coefficient))
+            push!(data.matrix_quadratic_small, (ref, v.a, v.b, coefficient))
         elseif abs(coefficient) > data.threshold_large
-            push!(data.matrix_quadratic_large, (ref, v1, v2, coefficient))
+            push!(data.matrix_quadratic_large, (ref, v.a, v.b, coefficient))
         end
-        push!(data.variables_in_constraints, v1)
-        push!(data.variables_in_constraints, v2)
+        push!(data.variables_in_constraints, v.a)
+        push!(data.variables_in_constraints, v.b)
     end
     data.has_quadratic_constraints = true
+    _get_constraint_data(data, ref, func.aff, ignore_empty = nnz > 0)
     return
 end
 
@@ -169,15 +172,15 @@ end
 function _get_objective_data(data, func::JuMP.GenericQuadExpr)
     _get_objective_data(data, func.aff)
     nnz = 0
-    for ((v1, v2), coefficient) in func.terms
+    for (v, coefficient) in func.terms
         if iszero(coefficient)
             continue
         end
         nnz += _update_range(data.objective_quadratic_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.objective_quadratic_small, (v1, v2, coefficient))
+            push!(data.objective_quadratic_small, (v.a, v.b, coefficient))
         elseif abs(coefficient) > data.threshold_large
-            push!(data.objective_quadratic_large, (v1, v2, coefficient))
+            push!(data.objective_quadratic_large, (v.a, v.b, coefficient))
         end
     end
     data.has_quadratic_objective = true
@@ -192,18 +195,18 @@ end
 function _quadratic_vexity(func::JuMP.GenericQuadExpr, sign::Int)
     variables = OrderedCollections.OrderedSet{VariableRef}()
     sizehint!(variables, 2 * length(func.terms))
-    for (v1, v2) in keys(func.terms)
-        push!(variables, v1)
-        push!(variables, v2)
+    for v in keys(func.terms)
+        push!(variables, v.a)
+        push!(variables, v.b)
     end
     var_map = Dict{VariableRef,Int}()
     for (idx, var) in enumerate(variables)
         var_map[var] = idx
     end
     matrix = zeros(length(variables), length(variables))
-    for ((v1, v2), coefficient) in func.terms
-        matrix[var_map[v1], var_map[v2]] += sign * coefficient / 2
-        matrix[var_map[v2], var_map[v1]] += sign * coefficient / 2
+    for (v, coefficient) in func.terms
+        matrix[var_map[v.a], var_map[v.b]] += sign * coefficient / 2
+        matrix[var_map[v.b], var_map[v.a]] += sign * coefficient / 2
     end
     ret = LinearAlgebra.cholesky!(
         LinearAlgebra.Symmetric(matrix),
@@ -379,8 +382,25 @@ end
 # Default fallback for unsupported constraints.
 _update_range(data, func, set) = false
 
-function coefficient_analysis(model::JuMP.Model)
+"""
+    coefficient_analysis(model::Model; threshold_dense_fill_in = 0.10, threshold_dense_entries = 1000, threshold_small = 1e-5, threshold_large = 1e+5)
+
+Analyze the coefficients of a JuMP model.
+
+"""
+function coefficient_analysis(
+    model::JuMP.Model;
+    threshold_dense_fill_in::Float64 = 0.10,
+    threshold_dense_entries::Int = 1000,
+    threshold_small::Float64 = 1e-5,
+    threshold_large::Float64 = 1e+5,
+)
     data = CoefficientsData()
+    data.threshold_dense_fill_in = threshold_dense_fill_in
+    data.threshold_dense_entries = threshold_dense_entries
+    data.threshold_small = threshold_small
+    data.threshold_large = threshold_large
+
     data.sense = JuMP.objective_sense(model)
     data.number_of_variables = JuMP.num_variables(model)
     sizehint!(data.variables_in_constraints, data.number_of_variables)
@@ -469,7 +489,6 @@ function _print_numerical_stability_report(
     warn::Bool = true,
     verbose::Bool = true,
     max_list::Int = 10,
-    names = true,
 )
     println(io, "Numerical stability report:")
     println(io, "  Number of variables: ", data.number_of_variables)
@@ -546,123 +565,131 @@ function _print_numerical_stability_report(
     println(io, "    objective large: ", length(data.objective_large))
 
     if verbose
-        println(io, "\n  Variables not in constraints:")
-        for var in first(data.variables_not_in_constraints, max_list)
-            println(io, "    * ", var, _name_string(var, names))
+        if !isempty(data.variables_not_in_constraints)
+            println(io, "\n  Variables not in constraints:")
         end
-        println(io, "\n  Bound rows:")
+        for ref in first(data.variables_not_in_constraints, max_list)
+            println(io, "    * ", _name(ref))
+        end
+        if !isempty(data.bound_rows)
+            println(io, "\n  Bound rows:")
+        end
         for ref in first(data.bound_rows, max_list)
-            println(io, "    * ", _name_string(ref, names), name_str)
+            println(io, "    * ", _name(ref))
         end
-        println(io, "\n  Dense constraints:")
+        if !isempty(data.dense_rows)
+            println(io, "\n  Dense constraints:")
+        end
         for (ref, nnz) in first(data.dense_rows, max_list)
-            println(io, "    * ", ref, _name_string(ref, names), ": ", nnz)
+            println(io, "    * ", _name(ref), ": ", nnz)
         end
-        println(io, "\n  Empty constraints:")
+        if !isempty(data.empty_rows)
+            println(io, "\n  Empty constraints:")
+        end
         for ref in first(data.empty_rows, max_list)
-            println(io, "    * ", _name_string(ref, names), name_str)
+            println(io, "    * ", _name(ref))
         end
-        println(io, "\n  Small matrix coefficients:")
+        if !isempty(data.matrix_small)
+            println(io, "\n  Small matrix coefficients:")
+        end
         for (ref, var, coeff) in first(data.matrix_small, max_list)
-            con_str = _name_string(ref, names)
-            var_str = _name_string(var, names)
-            println(io, "    * ", ref, con_str, "-", var, var_str, ": ", coeff)
+            println(io, "    * ", _name(ref), "-", _name(var), ": ", coeff)
         end
-        println(io, "\n  Large matrix coefficients:")
+        if !isempty(data.matrix_large)
+            println(io, "\n  Large matrix coefficients:")
+        end
         for (ref, var, coeff) in first(data.matrix_large, max_list)
-            con_str = _name_string(ref, names)
-            var_str = _name_string(var, names)
-            println(io, "    * ", ref, con_str, "-", var, var_str, ": ", coeff)
+            println(io, "    * ", _name(ref), "-", _name(var), ": ", coeff)
         end
-        println(io, "\n  Small bounds coefficients:")
-        for (var, coeff) in first(data.bounds_small, max_list)
-            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        if !isempty(data.bounds_small)
+            println(io, "\n  Small bounds coefficients:")
         end
-        println(io, "\n  Large bounds coefficients:")
-        for (var, coeff) in first(data.bounds_large, max_list)
-            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        for (ref, coeff) in first(data.bounds_small, max_list)
+            println(io, "    * ", _name(ref), ": ", coeff)
         end
-        println(io, "\n  Small rhs coefficients:")
+        if !isempty(data.bounds_large)
+            println(io, "\n  Large bounds coefficients:")
+        end
+        for (ref, coeff) in first(data.bounds_large, max_list)
+            println(io, "    * ", _name(ref), ": ", coeff)
+        end
+        if !isempty(data.rhs_small)
+            println(io, "\n  Small rhs coefficients:")
+        end
         for (ref, coeff) in first(data.rhs_small, max_list)
-            println(io, "    * ", ref, _name_string(ref, names), ": ", coeff)
+            println(io, "    * ", _name(ref), ": ", coeff)
         end
-        println(io, "\n  Large rhs coefficients:")
+        if !isempty(data.rhs_large)
+            println(io, "\n  Large rhs coefficients:")
+        end
         for (ref, coeff) in first(data.rhs_large, max_list)
-            println(io, "    * ", ref, _name_string(ref, names), ": ", coeff)
+            println(io, "    * ", _name(ref), ": ", coeff)
         end
-        println(io, "\n  Small objective coefficients:")
-        for (var, coeff) in first(data.objective_small, max_list)
-            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        if !isempty(data.objective_small)
+            println(io, "\n  Small objective coefficients:")
         end
-        println(io, "\n  Large objective coefficients:")
-        for (var, coeff) in first(data.objective_large, max_list)
-            println(io, "    * ", var, _name_string(var, names), ": ", coeff)
+        for (ref, coeff) in first(data.objective_small, max_list)
+            println(io, "    * ", _name(ref), ": ", coeff)
+        end
+        if !isempty(data.objective_large)
+            println(io, "\n  Large objective coefficients:")
+        end
+        for (ref, coeff) in first(data.objective_large, max_list)
+            println(io, "    * ", _name(ref), ": ", coeff)
         end
         if data.has_quadratic_objective
-            println(io, "\n  Small objective quadratic coefficients:")
+            if !isempty(data.objective_quadratic_small)
+                println(io, "\n  Small objective quadratic coefficients:")
+            end
             for (v1, v2, coeff) in
                 first(data.objective_quadratic_small, max_list)
-                println(
-                    io,
-                    "    * ",
-                    v1,
-                    _name_string(v1, names),
-                    "-",
-                    v2,
-                    _name_string(v2, names),
-                    ": ",
-                    coeff,
-                )
+                println(io, "    * ", _name(v1), "-", _name(v2), ": ", coeff)
             end
-            println(io, "\n  Large objective quadratic coefficients:")
+            if !isempty(data.objective_quadratic_large)
+                println(io, "\n  Large objective quadratic coefficients:")
+            end
             for (v1, v2, coeff) in
                 first(data.objective_quadratic_large, max_list)
-                println(
-                    io,
-                    "    * ",
-                    v1,
-                    _name_string(v1, names),
-                    "-",
-                    v2,
-                    _name_string(v2, names),
-                    ": ",
-                    coeff,
-                )
+                println(io, "    * ", _name(v1), "-", _name(v2), ": ", coeff)
             end
         end
         if data.has_quadratic_constraints
-            println(io, "\n  Small matrix quadratic coefficients:")
+            if !isempty(data.nonconvex_rows)
+                println(io, "\n Nonconvex quadratic constraints:")
+            end
+            for ref in first(data.nonconvex_rows, max_list)
+                println(io, "    * ", _name(ref))
+            end
+            if !isempty(data.matrix_quadratic_small)
+                println(io, "\n  Small matrix quadratic coefficients:")
+            end
             for (ref, v1, v2, coeff) in
                 first(data.matrix_quadratic_small, max_list)
                 println(
                     io,
                     "    * ",
-                    ref,
-                    _name_string(ref, names),
+                    _name(ref),
                     "-",
-                    v1,
-                    _name_string(v1, names),
+                    _name(v1),
                     "-",
-                    v2,
-                    _name_string(v2, names),
+                    _name(v2),
                     ": ",
                     coeff,
                 )
             end
-            println(io, "\n  Large matrix quadratic coefficients:")
+            if !isempty(data.matrix_quadratic_large)
+                println(io, "\n  Large matrix quadratic coefficients:")
+            end
             for (ref, v1, v2, coeff) in
                 first(data.matrix_quadratic_large, max_list)
                 println(
                     io,
                     "    * ",
-                    ref,
-                    _name_string(ref, names),
+                    _name(ref),
                     "-",
-                    v1,
-                    _name_string(v1, names),
+                    _name(v1),
                     "-",
-                    v2,
-                    _name_string(v2, names),
+                    _name(v2),
                     ": ",
                     coeff,
                 )
@@ -685,11 +712,12 @@ function _print_numerical_stability_report(
     return
 end
 
-function _name_string(ref, names)
-    if names
-        return string(" (", JuMP.name(ref), ')')
+function _name(ref)
+    name = JuMP.name(ref)
+    if !isempty(name)
+        return name
     end
-    return ""
+    return "$(ref.index)"
 end
 
 function Base.show(io::IO, data::CoefficientsData; verbose::Bool = false)
