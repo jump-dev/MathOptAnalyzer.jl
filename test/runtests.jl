@@ -58,7 +58,7 @@ function test_01()
         rhs large: 2
         objective small: 1
         objective large: 1
-    
+
     WARNING: numerical stability issues detected
       - matrix range contains small coefficients
       - matrix range contains large coefficients
@@ -108,41 +108,41 @@ function test_01()
         rhs large: 2
         objective small: 1
         objective large: 1
-    
+
       Variables not in constraints:
         * z
-    
+
       Bound rows:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.LessThan{Float64}}(3)
-    
+
       Empty constraints:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.LessThan{Float64}}(4)
-    
+
       Small matrix coefficients:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.GreaterThan{Float64}}(1)-y: 6.0e-15
-    
+
       Large matrix coefficients:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.GreaterThan{Float64}}(1)-x: 7.0e6
-    
+
       Small bounds coefficients:
         * y: 3.0e-9
-    
+
       Large bounds coefficients:
         * x: 2.0e9
-    
+
       Small rhs coefficients:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.GreaterThan{Float64}}(1): -2.0e-12
-    
+
       Large rhs coefficients:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.LessThan{Float64}}(1): 4.0e8
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.LessThan{Float64}}(2): -4.9999998e7
-    
+
       Small objective coefficients:
         * y: 8.0e-11
-    
+
       Large objective coefficients:
         * x: 1.0e8
-    
+
     WARNING: numerical stability issues detected
       - matrix range contains small coefficients
       - matrix range contains large coefficients
@@ -195,10 +195,10 @@ function test_02()
         Dense rows (entries): 1000
         Small coefficients: 1.0e-5
         Large coefficients: 100000.0
-    
+
       Objective is quadratic:
       Objective is nonconvex (numerically)
-    
+
       Coefficient ranges:
         matrix range     [1e+00, 1e+00]
         objective range  [1e+00, 1e+00]
@@ -240,10 +240,10 @@ function test_02()
         Dense rows (entries): 1000
         Small coefficients: 1.0e-5
         Large coefficients: 100000.0
-    
+
       Objective is quadratic:
       Objective is nonconvex (numerically)
-    
+
       Coefficient ranges:
         matrix range     [1e+00, 1e+00]
         objective range  [1e+00, 1e+00]
@@ -265,7 +265,7 @@ function test_02()
         rhs large: 0
         objective small: 0
         objective large: 0
-    
+
      Nonconvex quadratic constraints:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarQuadraticFunction{Float64}, MathOptInterface.EqualTo{Float64}}(1)
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarQuadraticFunction{Float64}, MathOptInterface.EqualTo{Float64}}(2)
@@ -320,7 +320,7 @@ function test_03()
         rhs large: 0
         objective small: 0
         objective large: 0
-    
+
       Dense constraints:
         * MathOptInterface.ConstraintIndex{MathOptInterface.ScalarAffineFunction{Float64}, MathOptInterface.LessThan{Float64}}(1): 10000
     """
@@ -351,10 +351,10 @@ function test_04()
         Dense rows (entries): 1000
         Small coefficients: 1.0e-5
         Large coefficients: 100000.0
-    
+
       Objective is quadratic:
       Objective is convex (numerically)
-    
+
       Coefficient ranges:
         matrix range     [1e+00, 1e+00]
         objective range  [1e+00, 1e+00]
@@ -376,19 +376,19 @@ function test_04()
         rhs large: 0
         objective small: 0
         objective large: 0
-    
+
       Small objective quadratic coefficients:
         * x-x: 3.0e-7
-    
+
       Large objective quadratic coefficients:
         * y-y: 2.0e12
-    
+
       Small matrix quadratic coefficients:
         * c-x-x: 1.0e-7
-    
+
       Large matrix quadratic coefficients:
         * c-y-y: 7.0e8
-    
+
     WARNING: numerical stability issues detected
       - objective q range contains small coefficients
       - objective q range contains large coefficients
