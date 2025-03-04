@@ -6,10 +6,8 @@
 module TestCoefficients
 
 import ModelAnalyzer
-import MathOptInterface as MOI
 using Test
 using JuMP
-import HiGHS
 
 function runtests()
     for name in names(@__MODULE__; all = true)
