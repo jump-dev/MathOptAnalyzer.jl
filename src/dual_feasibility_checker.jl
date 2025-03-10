@@ -3,7 +3,7 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-function _last_dual_solution(model::GenericModel{T}) where T
+function _last_dual_solution(model::GenericModel{T}) where {T}
     if !has_duals(model)
         error(
             "No dual solution is available. You must provide a point at " *
@@ -84,14 +84,16 @@ function dual_feasibility_report(
         end
     end
     dual_model = _dualize2(model)
-    primal_con_dual_var = dual_model.ext[:dualization_primal_dual_map].primal_con_dual_var
+    primal_con_dual_var =
+        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_var
 
     # point is a:
     # dict mapping primal constraints to (dual) values
     # we need to convert it to a:
     # dict mapping the dual model variables to these (dual) values
 
-    primal_con_dual_convar = dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
+    primal_con_dual_convar =
+        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
 
     dual_point = Dict{GenericVariableRef{T},T}()
     for (jump_con, val) in point
@@ -104,7 +106,10 @@ function dual_feasibility_report(
             end
         elseif haskey(primal_con_dual_convar, moi_con)
             moi_convar = primal_con_dual_convar[moi_con]
-            jump_var = JuMP.VariableRef(dual_model, MOI.VariableIndex(moi_convar.value))
+            jump_var = JuMP.VariableRef(
+                dual_model,
+                MOI.VariableIndex(moi_convar.value),
+            )
             dual_point[jump_var] = val
         else
             # careful with the case where bounds do not become variables
@@ -121,11 +126,14 @@ function dual_feasibility_report(
 
     # some dual model constraints are associated with primal model variables (primal_con_dual_var)
     # if variable is free (almost a primal con = ConstraintIndex{MOI.VariableIndex, MOI.Reals})
-    primal_var_dual_con = dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
+    primal_var_dual_con =
+        dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
     # if variable is bounded
-    primal_convar_dual_con = dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
+    primal_convar_dual_con =
+        dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
     # other dual model constraints (bounds) are associated with primal model constraints (non-bounds)
-    primal_con_dual_convar = dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
+    primal_con_dual_convar =
+        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
 
     dual_con_primal_all = _build_dual_con_primal_all(
         primal_var_dual_con,
@@ -144,7 +152,8 @@ function _build_dual_con_primal_all(
     primal_con_dual_con,
 )
     # MOI.VariableIndex here represents MOI.ConstraintIndex{MOI.VariableIndex, MOI.Reals}
-    dual_con_primal_all = Dict{MOI.ConstraintIndex, Union{MOI.ConstraintIndex, MOI.VariableIndex}}()
+    dual_con_primal_all =
+        Dict{MOI.ConstraintIndex,Union{MOI.ConstraintIndex,MOI.VariableIndex}}()
     for (primal_var, dual_con) in primal_var_dual_con
         dual_con_primal_all[dual_con] = primal_var
     end
@@ -157,7 +166,11 @@ function _build_dual_con_primal_all(
     return dual_con_primal_all
 end
 
-function _fix_ret(pre_ret, primal_model::GenericModel{T}, dual_con_primal_all) where {T}
+function _fix_ret(
+    pre_ret,
+    primal_model::GenericModel{T},
+    dual_con_primal_all,
+) where {T}
     ret = Dict{Union{JuMP.ConstraintRef,JuMP.VariableRef},Union{T,Vector{T}}}()
     for (jump_dual_con, val) in pre_ret
         # v is a variable in the dual jump model
@@ -167,12 +180,16 @@ function _fix_ret(pre_ret, primal_model::GenericModel{T}, dual_con_primal_all) w
         if moi_primal_something isa MOI.VariableIndex
             # variable in the dual model
             # constraint in the primal model
-            jump_primal_var = JuMP.VariableRef(primal_model, moi_primal_something)
+            jump_primal_var =
+                JuMP.VariableRef(primal_model, moi_primal_something)
             # ret[jump_primal_var] = T[val]
             ret[jump_primal_var] = val
         else
             # constraint in the primal model
-            jump_primal_con = JuMP.constraint_ref_with_index(primal_model, moi_primal_something)
+            jump_primal_con = JuMP.constraint_ref_with_index(
+                primal_model,
+                moi_primal_something,
+            )
             # if val isa Vector
             #     ret[jump_primal_con] = val
             # else
@@ -188,7 +205,7 @@ function _add_with_resize!(vec, val, i)
     if i > length(vec)
         resize!(vec, i)
     end
-    vec[i] = val
+    return vec[i] = val
 end
 
 """
@@ -275,11 +292,14 @@ function dual_feasibility_report(
 
     # some dual model constraints are associated with primal model variables (primal_con_dual_var)
     # if variable is free
-    primal_var_dual_con = dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
+    primal_var_dual_con =
+        dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
     # if variable is bounded
-    primal_convar_dual_con = dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
+    primal_convar_dual_con =
+        dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
     # other dual model constraints (bounds) are associated with primal model constraints (non-bounds)
-    primal_con_dual_con = dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
+    primal_con_dual_con =
+        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
 
     dual_con_primal_all = _build_dual_con_primal_all(
         primal_var_dual_con,
@@ -294,7 +314,7 @@ end
 
 function _reverse_primal_con_dual_var_map(primal_con_dual_var)
     dual_var_primal_con =
-    Dict{MOI.VariableIndex,Tuple{MOI.ConstraintIndex,Int}}()
+        Dict{MOI.VariableIndex,Tuple{MOI.ConstraintIndex,Int}}()
     for (moi_con, vec_vars) in primal_con_dual_var
         for (i, moi_var) in enumerate(vec_vars)
             dual_var_primal_con[moi_var] = (moi_con, i)

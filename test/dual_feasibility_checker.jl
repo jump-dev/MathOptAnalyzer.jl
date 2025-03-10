@@ -42,7 +42,10 @@ function test_only_bounds()
     @objective(model, Min, x)
     # md = Dualization.dualize(model)
     # print(md)
-    report = ModelAnalyzer.dual_feasibility_report(model, Dict(LowerBoundRef(x) => 1.0))
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(LowerBoundRef(x) => 1.0),
+    )
     @test isempty(report)
 end
 
@@ -62,7 +65,8 @@ function test_simple()
     @test isempty(report)
     report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => [1.0]))
     @test isempty(report)
-    @show report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => [3.3]))
+    @show report =
+        ModelAnalyzer.dual_feasibility_report(model, Dict(c => [3.3]))
     @test report[x] == 2.3
 end
 
@@ -78,11 +82,20 @@ function test_simple2()
     # y >= 0 (as a bound) # from c, a ">=" constraint
     # mayber force fail here
     # @test_throws ErrorException
-    report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => 1.0, LowerBoundRef(x) => 0.0))
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => 1.0, LowerBoundRef(x) => 0.0),
+    )
     @test isempty(report)
-    report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => [1.0], LowerBoundRef(x) => [0.0]))
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [1.0], LowerBoundRef(x) => [0.0]),
+    )
     @test isempty(report)
-    report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => [3.3], LowerBoundRef(x) => [0.0]))
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [3.3], LowerBoundRef(x) => [0.0]),
+    )
     @test report[LowerBoundRef(x)] == 2.3
 end
 
