@@ -3,8 +3,13 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-import ModelAnalyzer
-import MathOptInterface as MOI
 using Test
-using JuMP
 
+for file in readdir(@__DIR__)
+    if !endswith(file, ".jl") || file in ("runtests.jl",)
+        continue
+    end
+    @testset "$file" begin
+        include(file)
+    end
+end

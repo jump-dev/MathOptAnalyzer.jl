@@ -4,4 +4,14 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 module ModelAnalyzer
+
+using JuMP
+import LinearAlgebra
+import Printf
+import MathOptInterface as MOI
+import OrderedCollections
+import Dualization
+
+include("dual_feasibility_checker.jl")
+
 end
