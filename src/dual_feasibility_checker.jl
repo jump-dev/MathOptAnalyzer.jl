@@ -3,6 +3,13 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+# TODO
+# 1 - JuMP: primal_feasibility_report should have a typed error for not found stuff so we can capture
+# 2 - Dualization: should consider and option to dont treat @variable(m, x >= 0) differently from @variable(m, x >= 1)
+# 3 - Dualization: JuMP model dualization should hold the primal dual map, maybe a JuMP converted version
+# 4 - Dualization: Primal dual map could work with a getindex for simpler usage
+
+
 function _last_dual_solution(model::GenericModel{T}) where {T}
     if !has_duals(model)
         error(

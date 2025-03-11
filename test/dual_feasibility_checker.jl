@@ -20,7 +20,7 @@ function runtests()
     end
     return
 end
-#=
+
 function test_no_solution()
     model = Model()
     @variable(model, x, Bin)
@@ -32,7 +32,6 @@ function test_no_solution()
     # no dual solutions available
     @test_throws ErrorException ModelAnalyzer.dual_feasibility_report(model)
 end
-=#
 
 function test_only_bounds()
     # in this case the dual has no varaibles and has innocuous constraints
@@ -49,7 +48,7 @@ function test_only_bounds()
     @test isempty(report)
 end
 
-function test_simple()
+function test_no_lb()
     model = Model()
     @variable(model, x)
     @constraint(model, c, x >= 0)
@@ -65,28 +64,22 @@ function test_simple()
     @test isempty(report)
     report = ModelAnalyzer.dual_feasibility_report(model, Dict(c => [1.0]))
     @test isempty(report)
-    @show report =
+    report =
         ModelAnalyzer.dual_feasibility_report(model, Dict(c => [3.3]))
     @test report[x] == 2.3
+    @test length(report) == 1
 end
 
-function test_simple2()
+function test_lb0()
     model = Model()
     @variable(model, x >= 0)
     @constraint(model, c, x >= 0.5)
     @objective(model, Min, x)
     # the dual is:
-    # Max 0
+    # Max 0.5 * y
     # Subject to
-    # y == 1 (as a constraint) # from x, a free "bounded" varaible
-    # y >= 0 (as a bound) # from c, a ">=" constraint
-    # mayber force fail here
-    # @test_throws ErrorException
-    report = ModelAnalyzer.dual_feasibility_report(
-        model,
-        Dict(c => 1.0, LowerBoundRef(x) => 0.0),
-    )
-    @test isempty(report)
+    # - y >= -1 (as a constraint) # from x >= 0 (bound)
+    #   y >=  0 (as a bound) # from c, a ">=" constraint
     report = ModelAnalyzer.dual_feasibility_report(
         model,
         Dict(c => [1.0], LowerBoundRef(x) => [0.0]),
@@ -97,6 +90,59 @@ function test_simple2()
         Dict(c => [3.3], LowerBoundRef(x) => [0.0]),
     )
     @test report[LowerBoundRef(x)] == 2.3
+    @test length(report) == 1
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [-3.3], LowerBoundRef(x) => [0.0]),
+    )
+    @test report[c] == 3.3
+    @test length(report) == 1
+end
+
+function test_lb2()
+    model = Model()
+    @variable(model, x >= 2)
+    @constraint(model, c, x >= 0.5)
+    @objective(model, Min, x)
+    # the dual is:
+    # Max 0.5 * y + 2 * z
+    # Subject to
+    # y + z == 1 (as a constraint) # from x, a free variable (bound is considered below)
+    # z >= 0     (as a bound) # from the "constraint" x >= 2 (bound in the above example)
+    # y >= 0     (as a bound) # from c, a ">=" constraint
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [1.0], LowerBoundRef(x) => [0.0]),
+    )
+    @test isempty(report)
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [3.3], LowerBoundRef(x) => [0.0]),
+    )
+    @test report[x] == 2.3
+    @test length(report) == 1
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [-3.3], LowerBoundRef(x) => [0.0]),
+    )
+    @test report[x] == 4.3
+    @test report[c] == 3.3
+    @test length(report) == 2
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [-3.3], LowerBoundRef(x) => [-1.0]),
+    )
+    @test report[x] == 5.3
+    @test report[c] == 3.3
+    @test report[LowerBoundRef(x)] == 1.0
+    @test length(report) == 3
+    report = ModelAnalyzer.dual_feasibility_report(
+        model,
+        Dict(c => [-3.3]),
+        skip_missing = true,
+    )
+    @test report[c] == 3.3
+    @test length(report) == 1
 end
 
 end # module
