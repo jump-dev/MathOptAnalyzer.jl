@@ -4,4 +4,10 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 module ModelAnalyzer
+
+using JuMP
+
+include("intervals.jl")
+include("infeasibility_analysis.jl")
+
 end
