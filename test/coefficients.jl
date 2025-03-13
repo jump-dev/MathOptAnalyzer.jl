@@ -77,7 +77,7 @@ function test_dense()
     ret = sprint(show, data)
     print(ret)
 
-    ModelAnalyzer.NumericalAnalyzer.summarize(data)
+    return ModelAnalyzer.NumericalAnalyzer.summarize(data)
 end
 
 function test_qp_range()
@@ -92,7 +92,7 @@ function test_qp_range()
     ret = sprint(show, data)
     print(ret)
 
-    ModelAnalyzer.NumericalAnalyzer.summarize(data)
+    return ModelAnalyzer.NumericalAnalyzer.summarize(data)
 end
 
 end  # module

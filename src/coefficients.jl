@@ -110,7 +110,8 @@ Base.@kwdef mutable struct Data
     # main numbers
     number_of_variables::Int = 0
     number_of_constraints::Int = 0
-    constraint_info::Vector{Tuple{DataType,DataType,Int}} = Tuple{DataType,DataType,Int}[]
+    constraint_info::Vector{Tuple{DataType,DataType,Int}} =
+        Tuple{DataType,DataType,Int}[]
     # objective_info::Any
     matrix_nnz::Int = 0
     # ranges
@@ -121,7 +122,8 @@ Base.@kwdef mutable struct Data
     # cache data
     variables_in_constraints::Set{JuMP.VariableRef} = Set{JuMP.VariableRef}()
     # variables analysis
-    variables_not_in_constraints::Vector{VariableNotInConstraints} = VariableNotInConstraints[]
+    variables_not_in_constraints::Vector{VariableNotInConstraints} =
+        VariableNotInConstraints[]
     bounds_small::Vector{SmallBoundCoefficient} = SmallBoundCoefficient[]
     bounds_large::Vector{LargeBoundCoefficient} = LargeBoundCoefficient[]
     # constraints analysis
@@ -134,21 +136,28 @@ Base.@kwdef mutable struct Data
     rhs_large::Vector{LargeRHSCoefficient} = LargeRHSCoefficient[]
     # quadratic constraints analysis
     has_quadratic_constraints::Bool = false
-    nonconvex_rows::Vector{NonconvexQuadraticConstraint} = NonconvexQuadraticConstraint[]
-    matrix_quadratic_small::Vector{SmallMatrixQuadraticCoefficient} = SmallMatrixQuadraticCoefficient[]
-    matrix_quadratic_large::Vector{LargeMatrixQuadraticCoefficient} = LargeMatrixQuadraticCoefficient[]
+    nonconvex_rows::Vector{NonconvexQuadraticConstraint} =
+        NonconvexQuadraticConstraint[]
+    matrix_quadratic_small::Vector{SmallMatrixQuadraticCoefficient} =
+        SmallMatrixQuadraticCoefficient[]
+    matrix_quadratic_large::Vector{LargeMatrixQuadraticCoefficient} =
+        LargeMatrixQuadraticCoefficient[]
     # cache data
     sense::JuMP.OptimizationSense = JuMP.FEASIBILITY_SENSE
     # objective analysis
-    objective_small::Vector{SmallObjectiveCoefficient} = SmallObjectiveCoefficient[]
-    objective_large::Vector{LargeObjectiveCoefficient} = LargeObjectiveCoefficient[]
+    objective_small::Vector{SmallObjectiveCoefficient} =
+        SmallObjectiveCoefficient[]
+    objective_large::Vector{LargeObjectiveCoefficient} =
+        LargeObjectiveCoefficient[]
     # quadratic objective analysis
     has_quadratic_objective::Bool = false
     objective_quadratic_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     matrix_quadratic_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     nonconvex_objective::Bool = false
-    objective_quadratic_small::Vector{SmallObjectiveQuadraticCoefficient} = SmallObjectiveQuadraticCoefficient[]
-    objective_quadratic_large::Vector{LargeObjectiveQuadraticCoefficient} = LargeObjectiveQuadraticCoefficient[]
+    objective_quadratic_small::Vector{SmallObjectiveQuadraticCoefficient} =
+        SmallObjectiveQuadraticCoefficient[]
+    objective_quadratic_large::Vector{LargeObjectiveQuadraticCoefficient} =
+        LargeObjectiveQuadraticCoefficient[]
 end
 
 function _update_range(range::Vector{Float64}, value::Number)
@@ -177,9 +186,15 @@ function _get_constraint_data(
         end
         nnz += _update_range(data.matrix_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.matrix_small, SmallMatrixCoefficient(ref, variable, coefficient))
+            push!(
+                data.matrix_small,
+                SmallMatrixCoefficient(ref, variable, coefficient),
+            )
         elseif abs(coefficient) > data.threshold_large
-            push!(data.matrix_large, LargeMatrixCoefficient(ref, variable, coefficient))
+            push!(
+                data.matrix_large,
+                LargeMatrixCoefficient(ref, variable, coefficient),
+            )
         end
         push!(data.variables_in_constraints, variable)
     end
@@ -209,9 +224,15 @@ function _get_constraint_data(
         end
         nnz += _update_range(data.matrix_quadratic_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.matrix_quadratic_small, SmallMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient))
+            push!(
+                data.matrix_quadratic_small,
+                SmallMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
+            )
         elseif abs(coefficient) > data.threshold_large
-            push!(data.matrix_quadratic_large, LargeMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient))
+            push!(
+                data.matrix_quadratic_large,
+                LargeMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
+            )
         end
         push!(data.variables_in_constraints, v.a)
         push!(data.variables_in_constraints, v.b)
@@ -225,9 +246,15 @@ function _get_variable_data(data, variable, coefficient::Number)
     if !(iszero(coefficient))
         _update_range(data.bounds_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.bounds_small, SmallBoundCoefficient(variable, coefficient))
+            push!(
+                data.bounds_small,
+                SmallBoundCoefficient(variable, coefficient),
+            )
         elseif abs(coefficient) > data.threshold_large
-            push!(data.bounds_large, LargeBoundCoefficient(variable, coefficient))
+            push!(
+                data.bounds_large,
+                LargeBoundCoefficient(variable, coefficient),
+            )
         end
     end
     return
@@ -241,9 +268,15 @@ function _get_objective_data(data, func::JuMP.GenericAffExpr)
         end
         nnz += _update_range(data.objective_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.objective_small, SmallObjectiveCoefficient(variable, coefficient))
+            push!(
+                data.objective_small,
+                SmallObjectiveCoefficient(variable, coefficient),
+            )
         elseif abs(coefficient) > data.threshold_large
-            push!(data.objective_large, LargeObjectiveCoefficient(variable, coefficient))
+            push!(
+                data.objective_large,
+                LargeObjectiveCoefficient(variable, coefficient),
+            )
         end
     end
     return
@@ -258,9 +291,15 @@ function _get_objective_data(data, func::JuMP.GenericQuadExpr)
         end
         nnz += _update_range(data.objective_quadratic_range, coefficient)
         if abs(coefficient) < data.threshold_small
-            push!(data.objective_quadratic_small, SmallObjectiveQuadraticCoefficient(v.a, v.b, coefficient))
+            push!(
+                data.objective_quadratic_small,
+                SmallObjectiveQuadraticCoefficient(v.a, v.b, coefficient),
+            )
         elseif abs(coefficient) > data.threshold_large
-            push!(data.objective_quadratic_large, LargeObjectiveQuadraticCoefficient(v.a, v.b, coefficient))
+            push!(
+                data.objective_quadratic_large,
+                LargeObjectiveQuadraticCoefficient(v.a, v.b, coefficient),
+            )
         end
     end
     data.has_quadratic_objective = true
@@ -521,7 +560,10 @@ function analyze(
     # second pass on variables after constraint pass
     for var in JuMP.all_variables(model)
         if !(var in data.variables_in_constraints)
-            push!(data.variables_not_in_constraints, VariableNotInConstraints(var))
+            push!(
+                data.variables_not_in_constraints,
+                VariableNotInConstraints(var),
+            )
         end
     end
     sort!(data.dense_rows, by = x -> x.nnz, rev = true)
@@ -537,7 +579,11 @@ function analyze(
     sort!(data.objective_small, by = x -> abs(x.coefficient))
     sort!(data.objective_large, by = x -> abs(x.coefficient), rev = true)
     sort!(data.objective_quadratic_small, by = x -> abs(x.coefficient))
-    sort!(data.objective_quadratic_large, by = x -> abs(x.coefficient), rev = true)
+    sort!(
+        data.objective_quadratic_large,
+        by = x -> abs(x.coefficient),
+        rev = true,
+    )
     return data
 end
 
@@ -1105,11 +1151,25 @@ function _summarize(io::IO, issue::DenseConstraint)
 end
 
 function _summarize(io::IO, issue::SmallMatrixCoefficient)
-    return print(io, _name(issue.ref), " -- ", _name(issue.variable), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _summarize(io::IO, issue::LargeMatrixCoefficient)
-    return print(io, _name(issue.ref), " -- ", _name(issue.variable), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _summarize(io::IO, issue::SmallBoundCoefficient)
@@ -1137,11 +1197,25 @@ function _summarize(io::IO, issue::LargeObjectiveCoefficient)
 end
 
 function _summarize(io::IO, issue::SmallObjectiveQuadraticCoefficient)
-    return print(io, _name(issue.variable1), " -- ", _name(issue.variable2), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _summarize(io::IO, issue::LargeObjectiveQuadraticCoefficient)
-    return print(io, _name(issue.variable1), " -- ", _name(issue.variable2), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _summarize(io::IO, issue::NonconvexQuadraticConstraint)
@@ -1149,11 +1223,29 @@ function _summarize(io::IO, issue::NonconvexQuadraticConstraint)
 end
 
 function _summarize(io::IO, issue::SmallMatrixQuadraticCoefficient)
-    return print(io, _name(issue.ref), " -- ", _name(issue.variable1), " -- ", _name(issue.variable2), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _summarize(io::IO, issue::LargeMatrixQuadraticCoefficient)
-    return print(io, _name(issue.ref), " -- ", _name(issue.variable1), " -- ", _name(issue.variable2), " : ", issue.coefficient)
+    return print(
+        io,
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::VariableNotInConstraints)
@@ -1169,47 +1261,122 @@ function _verbose_summarize(io::IO, issue::VariableBoundAsConstraint)
 end
 
 function _verbose_summarize(io::IO, issue::DenseConstraint)
-    return print(io, "Constraint: ", _name(issue.ref), " with ", issue.nnz, " non zero coefficients")
+    return print(
+        io,
+        "Constraint: ",
+        _name(issue.ref),
+        " with ",
+        issue.nnz,
+        " non zero coefficients",
+    )
 end
 
 function _verbose_summarize(io::IO, issue::SmallMatrixCoefficient)
-    return print(io, "(Constraint -- Variable): (", _name(issue.ref), " -- ", _name(issue.variable), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Constraint -- Variable): (",
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeMatrixCoefficient)
-    return print(io, "(Constraint -- Variable): (", _name(issue.ref), " -- ", _name(issue.variable), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Constraint -- Variable): (",
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::SmallBoundCoefficient)
-    return print(io, "Variable: ", _name(issue.variable), " with bound ", issue.coefficient)
+    return print(
+        io,
+        "Variable: ",
+        _name(issue.variable),
+        " with bound ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeBoundCoefficient)
-    return print(io, "Variable: ", _name(issue.variable), " with bound ", issue.coefficient)
+    return print(
+        io,
+        "Variable: ",
+        _name(issue.variable),
+        " with bound ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::SmallRHSCoefficient)
-    return print(io, "Constraint: ", _name(issue.ref), " with right-hand-side ", issue.coefficient)
+    return print(
+        io,
+        "Constraint: ",
+        _name(issue.ref),
+        " with right-hand-side ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeRHSCoefficient)
-    return print(io, "Constraint: ", _name(issue.ref), " with right-hand-side ", issue.coefficient)
+    return print(
+        io,
+        "Constraint: ",
+        _name(issue.ref),
+        " with right-hand-side ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::SmallObjectiveCoefficient)
-    return print(io, "Variable: ", _name(issue.variable), " with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "Variable: ",
+        _name(issue.variable),
+        " with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeObjectiveCoefficient)
-    return print(io, "Variable: ", _name(issue.variable), " with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "Variable: ",
+        _name(issue.variable),
+        " with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::SmallObjectiveQuadraticCoefficient)
-    return print(io, "(Variable -- Variable): (", _name(issue.variable1), " -- ", _name(issue.variable2), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Variable -- Variable): (",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeObjectiveQuadraticCoefficient)
-    return print(io, "(Variable -- Variable): (", _name(issue.variable1), " -- ", _name(issue.variable2), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Variable -- Variable): (",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::NonconvexQuadraticConstraint)
@@ -1217,14 +1384,38 @@ function _verbose_summarize(io::IO, issue::NonconvexQuadraticConstraint)
 end
 
 function _verbose_summarize(io::IO, issue::SmallMatrixQuadraticCoefficient)
-    return print(io, "(Constraint -- Variable -- Variable): (", _name(issue.ref), " -- ", _name(issue.variable1), " -- ", _name(issue.variable2), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Constraint -- Variable -- Variable): (",
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
 function _verbose_summarize(io::IO, issue::LargeMatrixQuadraticCoefficient)
-    return print(io, "(Constraint -- Variable -- Variable): (", _name(issue.ref), " -- ", _name(issue.variable1), " -- ", _name(issue.variable2), ") with coefficient ", issue.coefficient)
+    return print(
+        io,
+        "(Constraint -- Variable -- Variable): (",
+        _name(issue.ref),
+        " -- ",
+        _name(issue.variable1),
+        " -- ",
+        _name(issue.variable2),
+        ") with coefficient ",
+        issue.coefficient,
+    )
 end
 
-function summarize(io::IO, ::Type{T}; verbose = true) where {T <: AbstractNumericalIssue}
+function summarize(
+    io::IO,
+    ::Type{T};
+    verbose = true,
+) where {T<:AbstractNumericalIssue}
     if verbose
         return _verbose_summarize(io, T)
     else
@@ -1234,7 +1425,7 @@ end
 
 function summarize(io::IO, issue::AbstractNumericalIssue; verbose = true)
     if verbose
-        return _verbose_summarize(io,issue)
+        return _verbose_summarize(io, issue)
     else
         return _summarize(io, issue)
     end
@@ -1336,7 +1527,12 @@ function list_of_issue_types(data::Data)
     return ret
 end
 
-function summarize(io::IO, issues::Vector{T}; verbose = true, max_issues = typemax(Int)) where {T<:AbstractNumericalIssue}
+function summarize(
+    io::IO,
+    issues::Vector{T};
+    verbose = true,
+    max_issues = typemax(Int),
+) where {T<:AbstractNumericalIssue}
     summarize(io, T, verbose = verbose)
     print(io, "\n## Number of issues\n\n")
     print(io, "Found ", length(issues), " issues")
@@ -1378,15 +1574,33 @@ function summarize_ranges(io::IO, data::Data)
     print(io, "  Bounds:    ", _stringify_bounds(data.bounds_range), "\n")
     print(io, "  RHS:       ", _stringify_bounds(data.rhs_range), "\n")
     if data.has_quadratic_objective
-        print(io, "  Objective quadratic: ", _stringify_bounds(data.objective_quadratic_range), "\n")
+        print(
+            io,
+            "  Objective quadratic: ",
+            _stringify_bounds(data.objective_quadratic_range),
+            "\n",
+        )
     end
     if data.has_quadratic_constraints
-        print(io, "  Matrix quadratic:    ", _stringify_bounds(data.matrix_quadratic_range), "\n")
+        print(
+            io,
+            "  Matrix quadratic:    ",
+            _stringify_bounds(data.matrix_quadratic_range),
+            "\n",
+        )
     end
     return
 end
 
-function summarize(io::IO, data::Data; verbose = true, max_issues = typemax(Int), configurations = true, dimensions = true, ranges = true)
+function summarize(
+    io::IO,
+    data::Data;
+    verbose = true,
+    max_issues = typemax(Int),
+    configurations = true,
+    dimensions = true,
+    ranges = true,
+)
     print(io, "## Numerical Analysis\n\n")
     if configurations
         summarize_configurations(io, data)
