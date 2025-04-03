@@ -11,6 +11,61 @@ abstract type AbstractData end
 
 abstract type AbstractAnalyzer end
 
+
+"""
+    analyze(analyzer::AbstractAnalyzer, model::JuMP.Model; kwargs...)
+
+Analyze a JuMP model using the specified analyzer.
+Depending on the analyzer, this keyword arguments might vary.
+This function will return an instance of `AbstractData` which contains the
+results of the analysis that can be further summarized or queried for issues.
+
+See [`summarize`](@ref), [`list_of_issues`](@ref), and
+[`list_of_issue_types`](@ref).
+"""
+function analyze end
+
+
+"""
+    summarize([io::IO,] AbstractData; verbose = true, max_issues = typemax(Int), kwargs...)
+
+Print a summary of the analysis results contained in `AbstractData` to the
+specified IO stream. If no IO stream is provided, it defaults to `stdout`.
+The `verbose` flag controls whether to print detailed information about each
+issue (if `true`) or a concise summary (if `false`). The `max_issues` argument
+controls the maximum number of issues to display in the summary. If there are
+more issues than `max_issues`, only the first `max_issues` will be displayed.
+
+    summarize([io::IO,] ::Type{T}; verbose = true) where {T<:AbstractIssue}
+
+This variant allows summarizing information of a specific type `T` (which must
+be a subtype of `AbstractIssue`). In the verbose case it will provide a text
+explaning the issue. In the non-verbose case it will provide just the issue
+name.
+
+    summarize([io::IO,] issue::AbstractIssue; verbose = true)
+
+This variant allows summarizing a single issue instance of type `AbstractIssue`.
+"""
+function summarize end
+
+"""
+    list_of_issue_types(data::AbstractData)
+
+Return a vector of `DataType` containing the types of issues found in the
+analysis results contained in `data`.
+"""
+function list_of_issue_types end
+
+"""
+    list_of_issues(data::AbstractData, issue_type::Type{T}) where {T<:AbstractIssue}
+
+Return a vector of instances of `T` (which must be a subtype of `AbstractIssue`)
+found in the analysis results contained in `data`. This allows you to retrieve
+all instances of a specific issue type from the analysis results.
+"""
+function list_of_issues end
+
 function summarize(io::IO, ::Type{T}; verbose = true) where {T<:AbstractIssue}
     if verbose
         return _verbose_summarize(io, T)
@@ -48,10 +103,6 @@ end
 function summarize(data::AbstractData; kwargs...)
     return summarize(stdout, data; kwargs...)
 end
-
-function analyze end
-function list_of_issues end
-function list_of_issue_types end
 
 function _verbose_summarize end
 function _summarize end

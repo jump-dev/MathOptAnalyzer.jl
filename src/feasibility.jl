@@ -17,45 +17,137 @@ import JuMP
 import JuMP.MOI as MOI
 import Printf
 
+"""
+    Analyzer() <: ModelAnalyzer.AbstractAnalyzer
+
+The `Analyzer` type is used to perform feasibility analysis on a JuMP model.
+
+## Example
+
+```julia
+julia> data = ModelAnalyzer.analyze(
+    ModelAnalyzer.Feasibility.Analyzer(),
+    model;
+    primal_point::Union{Nothing, Dict} = nothing,
+    dual_point::Union{Nothing, Dict} = nothing,
+    atol::Float64 = 1e-6,
+    skip_missing::Bool = false,
+    dual_check = true,
+);
+```
+
+The additional parameters:
+- `primal_point`: The primal solution point to use for feasibility checking.
+If `nothing`, it will use the current primal solution from optimized model.
+- `dual_point`: The dual solution point to use for feasibility checking.
+If `nothing` and the model can be dualized, it will use the current dual
+solution from the model.
+- `atol`: The absolute tolerance for feasibility checking.
+- `skip_missing`: If `true`, constraints with missing variables in the provided
+point will be ignored.
+- `dual_check`: If `true`, it will perform dual feasibility checking. Disabling
+the dual check will also disable complementarity checking.
+"""
 struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 
+"""
+    AbstractFeasibilityIssue <: AbstractNumericalIssue
+
+Abstract type for feasibility issues found during the analysis of a JuMP model.
+"""
 abstract type AbstractFeasibilityIssue <: ModelAnalyzer.AbstractIssue end
 
+"""
+    PrimalViolation <: AbstractFeasibilityIssue
+
+The `PrimalViolation` issue is identified when a primal constraint has a
+left-hand-side value that is not within the constraint's set.
+"""
 struct PrimalViolation <: AbstractFeasibilityIssue
     ref::JuMP.ConstraintRef
     violation::Float64
 end
 
+"""
+    DualViolation <: AbstractFeasibilityIssue
+
+The `DualViolation` issue is identified when a constraint has a dual value
+that is not within the dual constraint's set.
+"""
 struct DualViolation <: AbstractFeasibilityIssue
     ref::Union{JuMP.ConstraintRef,JuMP.VariableRef}
     violation::Float64
 end
 
+"""
+    ComplemetarityViolation <: AbstractFeasibilityIssue
+
+The `ComplemetarityViolation` issue is identified when a pair of primal
+constraint and dual variable has a nonzero complementarity value, i.e., the
+inner product of the primal constraint's slack and the dual variable's
+violation is not zero.
+"""
 struct ComplemetarityViolation <: AbstractFeasibilityIssue
     ref::JuMP.ConstraintRef
     violation::Float64
 end
 
+"""
+    DualObjectiveMismatch <: AbstractFeasibilityIssue
+
+The `DualObjectiveMismatch` issue is identified when the dual objective value
+computed from problem data and the dual solution does not match the solver's
+dual objective value.
+"""
 struct DualObjectiveMismatch <: AbstractFeasibilityIssue
     obj::Float64
     obj_solver::Float64
 end
 
+"""
+    PrimalObjectiveMismatch <: AbstractFeasibilityIssue
+
+The `PrimalObjectiveMismatch` issue is identified when the primal objective
+value computed from problem data and the primal solution does not match
+the solver's primal objective value.
+"""
 struct PrimalObjectiveMismatch <: AbstractFeasibilityIssue
     obj::Float64
     obj_solver::Float64
 end
 
+"""
+    PrimalDualMismatch <: AbstractFeasibilityIssue
+
+The `PrimalDualMismatch` issue is identified when the primal objective value
+computed from problem data and the primal solution does not match the dual
+objective value computed from problem data and the dual solution.
+"""
 struct PrimalDualMismatch <: AbstractFeasibilityIssue
     primal::Float64
     dual::Float64
 end
 
+"""
+    PrimalDualSolverMismatch <: AbstractFeasibilityIssue
+
+The `PrimalDualSolverMismatch` issue is identified when the primal objective
+value reported by the solver does not match the dual objective value reported
+by the solver.
+"""
 struct PrimalDualSolverMismatch <: AbstractFeasibilityIssue
     primal::Float64
     dual::Float64
 end
 
+"""
+    Data
+
+The `Data` structure holds the results of the feasibility analysis performed
+by the `ModelAnalyzer.analyze` function for a JuMP model. It contains
+the configuration used for the analysis, the primal and dual points, and
+the lists of various feasibility issues found during the analysis.
+"""
 Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
     # analysis configuration
     primal_point::Union{Nothing,AbstractDict}
