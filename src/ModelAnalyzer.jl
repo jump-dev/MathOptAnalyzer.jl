@@ -11,7 +11,6 @@ abstract type AbstractData end
 
 abstract type AbstractAnalyzer end
 
-
 """
     analyze(analyzer::AbstractAnalyzer, model::JuMP.Model; kwargs...)
 
@@ -24,7 +23,6 @@ See [`summarize`](@ref), [`list_of_issues`](@ref), and
 [`list_of_issue_types`](@ref).
 """
 function analyze end
-
 
 """
     summarize([io::IO,] AbstractData; verbose = true, max_issues = typemax(Int), kwargs...)
