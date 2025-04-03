@@ -11,16 +11,53 @@ import JuMP.MOI as MOI
 
 include("intervals.jl")
 
+"""
+    Analyzer() <: ModelAnalyzer.AbstractAnalyzer
+
+The `Analyzer` type is used to perform infeasibility analysis on a JuMP model.
+
+## Example
+```julia
+julia> data = ModelAnalyzer.analyze(
+    Analyzer(),
+    model,
+    optimizer = nothing,,
+)
+```
+
+The additional keyword argument `optimizer` is used to specify the optimizer to
+use for the IIS resolver.
+"""
 struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 
+"""
+    AbstractInfeasibilitylIssue
+
+Abstract type for infeasibility issues found during the analysis of a JuMP
+model.
+"""
 abstract type AbstractInfeasibilitylIssue <: ModelAnalyzer.AbstractIssue end
 
+"""
+    InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
+
+The `InfeasibleBounds` issue is identified when a variable has a lower bound
+that is greater than its upper bound.
+"""
 struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
     variable::JuMP.VariableRef
     lb::T
     ub::T
 end
 
+"""
+    InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
+
+The `InfeasibleIntegrality` issue is identified when a variable has an
+integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not 
+consistent with its bounds. That is, the bounds do not allow for any
+integer value to be feasible.
+"""
 struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
     variable::JuMP.VariableRef
     lb::T
@@ -28,6 +65,16 @@ struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
     set::Union{MOI.Integer,MOI.ZeroOne}#, MOI.Semicontinuous{T}, MOI.Semiinteger{T}}
 end
 
+"""
+    InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
+
+The `InfeasibleConstraintRange` issue is identified when a constraint cannot
+be satisfied given the variable bounds. This analysis only considers one
+constraint at a time and all variable bounds of variables involved in the
+constraint.
+This issue can only be found is all variable bounds are consistent, that is,
+no issues of type `InfeasibleBounds` were found in the first layer of analysis.
+"""
 struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
     constraint::JuMP.ConstraintRef
     lb::T
@@ -35,10 +82,27 @@ struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
     set::Union{MOI.EqualTo{T},MOI.LessThan{T},MOI.GreaterThan{T}}
 end
 
+"""
+    IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
+
+The `IrreducibleInfeasibleSubset` issue is identified when a subset of
+constraints cannot be satisfied simultaneously. This is typically found
+by the IIS resolver after the first two layers of infeasibility analysis
+have been completed with no issues, that is, no issues of any other type
+were found.
+"""
 struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
     constraint::Vector{JuMP.ConstraintRef}
 end
 
+"""
+    Data <: ModelAnalyzer.AbstractData
+
+The `Data` type is used to store the results of the infeasibility analysis.
+This type contains vectors of the various infeasibility issues found during
+the analysis, including `InfeasibleBounds`, `InfeasibleIntegrality`,
+`InfeasibleConstraintRange`, and `IrreducibleInfeasibleSubset`.
+"""
 Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
     infeasible_bounds::Vector{InfeasibleBounds} = InfeasibleBounds[]
     infeasible_integrality::Vector{InfeasibleIntegrality} =
