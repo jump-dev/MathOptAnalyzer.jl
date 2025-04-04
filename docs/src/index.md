@@ -7,29 +7,35 @@ end
 
 # ModelAnalyzer.jl
 
-This package provides tools for analyzing (and debugging) [JuMP](https://github.com/jump-dev/JuMP.jl) models.
+This package provides tools for analyzing (and debugging)
+[JuMP](https://github.com/jump-dev/JuMP.jl) models.
 
 Three main functionalities are provided:
 
-1. **Numerical Analysis**: Check for numerical issues in the model, such as large and small coefficients,
-empty constraints, non-convex quadratic functions.
-
-2. **Feasibility Analysis**: Given an optimized model, or a candidate solution, check if the solutions is
-feasible and optimal (when possible). This includes checking the feasibility of the primal model and
-also the dual model (if available). Complementary slackness conditions are also checked (if applicable).
-
-3. **Infeasibility Analysis**: Given an unsolved of solved model, three steps are made to check for
-    infeasibility:
-    - Check bounds, integers and binaries consistency is also checked at this point.
-    - Propagate bounds in constraints individually, to check if each constraint is infeasible
-    given the current variable bounds. This is only done if bounds are ok.
-    - Run an IIS (Irreducible Inconsistent Subsystem / irreducible infeasible sets)
-    resolver algorithm to find a minimal infeasible subset of constraints.
-    This is only done if no issues are found in the previous two steps.
+ 1. **Numerical Analysis**: Check for numerical issues in the model, such as
+    large and small coefficients, empty constraints, non-convex quadratic
+    functions.
+ 2. **Feasibility Analysis**: Given an optimized model, or a candidate solution,
+    check if the solutions is feasible and optimal (when possible). This
+    includes checking the feasibility of the primal model and also the dual
+    model (if available). Complementary slackness conditions are also checked
+    (if applicable).
+ 3. **Infeasibility Analysis**: Given an unsolved of solved model, three steps
+    are made to check for infeasibility:
+    - Check bounds, integers and binaries consistency is also checked at this
+      point.
+    - Propagate bounds in constraints individually, to check if each constraint
+      is infeasible given the current variable bounds. This is only done if
+      bounds are ok.
+    - Run an IIS (Irreducible Inconsistent Subsystem / irreducible infeasible
+      sets) resolver algorithm to find a minimal infeasible subset of
+      constraints. This is only done if no issues are found in the previous two
+      steps.
 
 ## Installation
 
-You can install the package using the Julia package manager. In the Julia REPL, run:
+You can install the package using the Julia package manager. In the Julia REPL,
+run:
 
 ```julia
 using Pkg
@@ -84,14 +90,16 @@ ModelAnalyzer.summarize(data)
 
 The `ModelAnalyzer.analyze(...)` function can always take the keyword arguments:
  * `verbose = false` to condense the print output.
- * `max_issues = n` to limit the maximum number of issues to report for each type.
+ * `max_issues = n` to limit the maximum number of issues to report for each
+   type.
 
-For certain analysis modes, the `summarize` function can take additional arguments.
+For certain analysis modes, the `summarize` function can take additional
+arguments.
 
 ### Advanced usage
 
-After any `ModelAnalyzer.analyze(...)` call is performed, the resulting data structure
-can be summarized using `ModelAnalyzer.summarize(data)` as show above,
+After any `ModelAnalyzer.analyze(...)` call is performed, the resulting data
+structure can be summarized using `ModelAnalyzer.summarize(data)` as show above,
 or it can be further inspected programmatically.
 
 ```julia

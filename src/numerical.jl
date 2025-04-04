@@ -15,7 +15,7 @@ import Printf
     Analyzer() <: ModelAnalyzer.AbstractAnalyzer
 
 The `Analyzer` type is used to analyze the coefficients of a JuMP model for
-    numerical issues.
+numerical issues.
 
 ## Example
 
@@ -32,9 +32,9 @@ julia> data = ModelAnalyzer.analyze(
 
 The additional parameters:
 - `threshold_dense_fill_in`: The threshold for the fraction of non-zero entries
-in a constraint to be considered dense.
+  in a constraint to be considered dense.
 - `threshold_dense_entries`: The minimum number of non-zero entries for a
-constraint to be considered dense.
+  constraint to be considered dense.
 - `threshold_small`: The threshold for small coefficients in the model.
 - `threshold_large`: The threshold for large coefficients in the model.
 
@@ -53,6 +53,11 @@ abstract type AbstractNumericalIssue <: ModelAnalyzer.AbstractIssue end
 
 The `VariableNotInConstraints` issue is identified when a variable appears in no
 constraints.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableNotInConstraints)
+```
 """
 struct VariableNotInConstraints <: AbstractNumericalIssue
     ref::JuMP.VariableRef
@@ -63,6 +68,11 @@ end
 
 The `EmptyConstraint` issue is identified when a constraint has no coefficients
 different from zero.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.EmptyConstraint)
+```
 """
 struct EmptyConstraint <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -74,6 +84,11 @@ end
 The `VariableBoundAsConstraint` issue is identified when a constraint is
 equivalent to a variable bound, that is, the constraint has only one non-zero
 coefficient, and this coefficient is equal to one.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableBoundAsConstraint)
+```
 """
 struct VariableBoundAsConstraint <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -85,6 +100,11 @@ end
 The `DenseConstraint` issue is identified when a constraint has a fraction of
 non-zero entries greater than `threshold_dense_fill_in` and the number of
 non-zero entries is greater than `threshold_dense_entries`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.DenseConstraint)
+```
 """
 struct DenseConstraint <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -96,6 +116,11 @@ end
 
 The `SmallMatrixCoefficient` issue is identified when a matrix coefficient in a
 constraint is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallMatrixCoefficient)
+```
 """
 struct SmallMatrixCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -108,6 +133,11 @@ end
 
 The `LargeMatrixCoefficient` issue is identified when a matrix coefficient in a
 constraint is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeMatrixCoefficient)
+```
 """
 struct LargeMatrixCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -120,6 +150,11 @@ end
 
 The `SmallBoundCoefficient` issue is identified when a variable's bound
 (coefficient) is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallBoundCoefficient)
+```
 """
 struct SmallBoundCoefficient <: AbstractNumericalIssue
     variable::JuMP.VariableRef
@@ -131,6 +166,11 @@ end
 
 The `LargeBoundCoefficient` issue is identified when a variable's bound
 (coefficient) is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeBoundCoefficient)
+```
 """
 struct LargeBoundCoefficient <: AbstractNumericalIssue
     variable::JuMP.VariableRef
@@ -142,6 +182,11 @@ end
 
 The `SmallRHSCoefficient` issue is identified when the right-hand-side (RHS)
 coefficient of a constraint is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallRHSCoefficient)
+```
 """
 struct SmallRHSCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -153,6 +198,11 @@ end
 
 The `LargeRHSCoefficient` issue is identified when the right-hand-side (RHS)
 coefficient of a constraint is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeRHSCoefficient)
+```
 """
 struct LargeRHSCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -164,6 +214,11 @@ end
 
 The `SmallObjectiveCoefficient` issue is identified when a coefficient in the
 objective function is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallObjectiveCoefficient)
+```
 """
 struct SmallObjectiveCoefficient <: AbstractNumericalIssue
     variable::JuMP.VariableRef
@@ -175,6 +230,11 @@ end
 
 The `LargeObjectiveCoefficient` issue is identified when a coefficient in the
 objective function is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeObjectiveCoefficient)
+```
 """
 struct LargeObjectiveCoefficient <: AbstractNumericalIssue
     variable::JuMP.VariableRef
@@ -186,6 +246,13 @@ end
 
 The `SmallObjectiveQuadraticCoefficient` issue is identified when a quadratic
 coefficient in the objective function is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient
+)
+```
 """
 struct SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable1::JuMP.VariableRef
@@ -198,6 +265,13 @@ end
 
 The `LargeObjectiveQuadraticCoefficient` issue is identified when a quadratic
 coefficient in the objective function is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient
+)
+```
 """
 struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable1::JuMP.VariableRef
@@ -210,6 +284,13 @@ end
 
 The `NonconvexQuadraticConstraint` issue is identified when a quadratic
 constraint is non-convex.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
+)
+```
 """
 struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -220,6 +301,13 @@ end
 
 The `SmallMatrixQuadraticCoefficient` issue is identified when a quadratic
 coefficient in a constraint is smaller than `threshold_small`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient
+)
+```
 """
 struct SmallMatrixQuadraticCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
@@ -233,6 +321,13 @@ end
 
 The `LargeMatrixQuadraticCoefficient` issue is identified when a quadratic
 coefficient in a constraint is larger than `threshold_large`.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient
+)
+```
 """
 struct LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
     ref::JuMP.ConstraintRef
