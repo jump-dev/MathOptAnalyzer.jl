@@ -52,10 +52,7 @@ function test_only_bounds()
     )
     @test isempty(report)
 
-    buf = IOBuffer()
-    Base.show(buf, report)
-    str = String(take!(buf))
-    @test str == "Feasibility analysis found 0 issues"
+    return
 end
 
 function test_no_lb()
@@ -195,6 +192,11 @@ function test_analyse_mip()
     @test length(list) == 0
 
     ModelAnalyzer.summarize(data)
+
+    buf = IOBuffer()
+    Base.show(buf, data)
+    str = String(take!(buf))
+    @test str == "Feasibility analysis found 0 issues"
 
     return
 end
