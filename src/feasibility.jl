@@ -915,13 +915,9 @@ function _analyze_objectives!(
 end
 
 ###
+
+# unsafe as is its checked upstream
 function _last_primal_solution(model::JuMP.GenericModel)
-    if !JuMP.has_values(model)
-        error(
-            "No primal solution is available. You must provide a point at " *
-            "which to check feasibility.",
-        )
-    end
     return Dict(v => JuMP.value(v) for v in JuMP.all_variables(model))
 end
 
@@ -1143,123 +1139,6 @@ function _add_with_resize!(vec, val, i)
         resize!(vec, i)
     end
     return vec[i] = val
-end
-
-"""
-    dual_feasibility_report(
-        point::Function,
-        model::GenericModel{T};
-        atol::T = zero(T),
-        skip_missing::Bool = false,
-    ) where {T}
-
-A form of `dual_feasibility_report` where a function is passed as the first
-argument instead of a dictionary as the second argument.
-
-## Example
-
-```jldoctest
-julia> model = Model();
-
-julia> @variable(model, 0.5 <= x <= 1, start = 1.3); TODO
-
-julia> dual_feasibility_report(model) do v
-           return dual_start_value(v)
-       end
-Dict{Any, Float64} with 1 entry:
-  x ≤ 1 => 0.3 TODO
-```
-"""
-# probablye remove this method
-function dual_feasibility_report(
-    point::Function,
-    model::JuMP.GenericModel{T};
-    atol::T = zero(T),
-    skip_missing::Bool = false,
-) where {T}
-    if JuMP.num_nonlinear_constraints(model) > 0
-        error(
-            "Nonlinear constraints are not supported. " *
-            "Use `dual_feasibility_report` instead.",
-        )
-    end
-    if !skip_missing
-        constraint_list = JuMP.all_constraints(
-            model;
-            include_variable_in_set_constraints = false,
-        )
-        for c in constraint_list
-            if !haskey(point, c)
-                error(
-                    "point does not contain a dual for constraint $c. Provide " *
-                    "a dual, or pass `skip_missing = true`.",
-                )
-            end
-        end
-    end
-    dual_model = _dualize2(model)
-    map = dual_model.ext[:dualization_primal_dual_map].primal_con_dual_var
-
-    dual_var_primal_con = _reverse_primal_con_dual_var_map(map)
-
-    function dual_point(jump_dual_var::JuMP.GenericVariableRef{T})
-        # v is a variable in the dual jump model
-        # we need the associated cosntraint in the primal jump model
-        moi_dual_var = JuMP.index(jump_dual_var)
-        moi_primal_con, i = dual_var_primal_con[moi_dual_var]
-        jump_primal_con = JuMP.constraint_ref_with_index(model, moi_primal_con)
-        pre_point = point(jump_primal_con)
-        if ismissing(pre_point)
-            if !skip_missing
-                error(
-                    "point does not contain a dual for constraint $jump_primal_con. Provide " *
-                    "a dual, or pass `skip_missing = true`.",
-                )
-            else
-                return missing
-            end
-        end
-        return point(jump_primal_con)[i]
-    end
-
-    dual_con_to_violation = JuMP.primal_feasibility_report(
-        dual_point,
-        dual_model;
-        atol = atol,
-        skip_missing = skip_missing,
-    )
-
-    # some dual model constraints are associated with primal model variables (primal_con_dual_var)
-    # if variable is free
-    primal_var_dual_con =
-        dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
-    # if variable is bounded
-    primal_convar_dual_con =
-        dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
-    # other dual model constraints (bounds) are associated with primal model constraints (non-bounds)
-    primal_con_dual_con =
-        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
-
-    dual_con_primal_all = _build_dual_con_primal_all(
-        primal_var_dual_con,
-        primal_convar_dual_con,
-        primal_con_dual_con,
-    )
-
-    ret = _fix_ret(dual_con_to_violation, model, dual_con_primal_all)
-
-    return ret
-end
-
-function _reverse_primal_con_dual_var_map(primal_con_dual_var)
-    dual_var_primal_con =
-        Dict{MOI.VariableIndex,Tuple{MOI.ConstraintIndex,Int}}()
-    for (moi_con, vec_vars) in primal_con_dual_var
-        for (i, moi_var) in enumerate(vec_vars)
-            dual_var_primal_con[moi_var] = (moi_con, i)
-        end
-    end
-    return dual_var_primal_con
 end
 
 function _dualize2(
