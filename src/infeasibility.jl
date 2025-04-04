@@ -43,6 +43,11 @@ abstract type AbstractInfeasibilitylIssue <: ModelAnalyzer.AbstractIssue end
 
 The `InfeasibleBounds` issue is identified when a variable has a lower bound
 that is greater than its upper bound.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Infeasibility.InfeasibleBounds)
+````
 """
 struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
     variable::JuMP.VariableRef
@@ -57,6 +62,13 @@ The `InfeasibleIntegrality` issue is identified when a variable has an
 integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not 
 consistent with its bounds. That is, the bounds do not allow for any
 integer value to be feasible.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Infeasibility.InfeasibleIntegrality
+)
+```
 """
 struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
     variable::JuMP.VariableRef
@@ -74,6 +86,13 @@ constraint at a time and all variable bounds of variables involved in the
 constraint.
 This issue can only be found is all variable bounds are consistent, that is,
 no issues of type `InfeasibleBounds` were found in the first layer of analysis.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Infeasibility.InfeasibleConstraintRange
+)
+```
 """
 struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
     constraint::JuMP.ConstraintRef
@@ -90,6 +109,13 @@ constraints cannot be satisfied simultaneously. This is typically found
 by the IIS resolver after the first two layers of infeasibility analysis
 have been completed with no issues, that is, no issues of any other type
 were found.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Infeasibility.IrreducibleInfeasibleSubset
+)
+```
 """
 struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
     constraint::Vector{JuMP.ConstraintRef}

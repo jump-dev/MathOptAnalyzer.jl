@@ -38,15 +38,15 @@ julia> data = ModelAnalyzer.analyze(
 
 The additional parameters:
 - `primal_point`: The primal solution point to use for feasibility checking.
-If `nothing`, it will use the current primal solution from optimized model.
+  If `nothing`, it will use the current primal solution from optimized model.
 - `dual_point`: The dual solution point to use for feasibility checking.
-If `nothing` and the model can be dualized, it will use the current dual
-solution from the model.
+  If `nothing` and the model can be dualized, it will use the current dual
+  solution from the model.
 - `atol`: The absolute tolerance for feasibility checking.
 - `skip_missing`: If `true`, constraints with missing variables in the provided
-point will be ignored.
+  point will be ignored.
 - `dual_check`: If `true`, it will perform dual feasibility checking. Disabling
-the dual check will also disable complementarity checking.
+  the dual check will also disable complementarity checking.
 """
 struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 
@@ -62,6 +62,11 @@ abstract type AbstractFeasibilityIssue <: ModelAnalyzer.AbstractIssue end
 
 The `PrimalViolation` issue is identified when a primal constraint has a
 left-hand-side value that is not within the constraint's set.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalViolation)
+```
 """
 struct PrimalViolation <: AbstractFeasibilityIssue
     ref::JuMP.ConstraintRef
@@ -73,6 +78,11 @@ end
 
 The `DualViolation` issue is identified when a constraint has a dual value
 that is not within the dual constraint's set.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualViolation)
+```
 """
 struct DualViolation <: AbstractFeasibilityIssue
     ref::Union{JuMP.ConstraintRef,JuMP.VariableRef}
@@ -86,6 +96,11 @@ The `ComplemetarityViolation` issue is identified when a pair of primal
 constraint and dual variable has a nonzero complementarity value, i.e., the
 inner product of the primal constraint's slack and the dual variable's
 violation is not zero.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.ComplemetarityViolation)
+```
 """
 struct ComplemetarityViolation <: AbstractFeasibilityIssue
     ref::JuMP.ConstraintRef
@@ -98,6 +113,11 @@ end
 The `DualObjectiveMismatch` issue is identified when the dual objective value
 computed from problem data and the dual solution does not match the solver's
 dual objective value.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualObjectiveMismatch)
+```
 """
 struct DualObjectiveMismatch <: AbstractFeasibilityIssue
     obj::Float64
@@ -110,6 +130,11 @@ end
 The `PrimalObjectiveMismatch` issue is identified when the primal objective
 value computed from problem data and the primal solution does not match
 the solver's primal objective value.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalObjectiveMismatch)
+```
 """
 struct PrimalObjectiveMismatch <: AbstractFeasibilityIssue
     obj::Float64
@@ -122,6 +147,11 @@ end
 The `PrimalDualMismatch` issue is identified when the primal objective value
 computed from problem data and the primal solution does not match the dual
 objective value computed from problem data and the dual solution.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalDualMismatch)
+```
 """
 struct PrimalDualMismatch <: AbstractFeasibilityIssue
     primal::Float64
@@ -134,6 +164,11 @@ end
 The `PrimalDualSolverMismatch` issue is identified when the primal objective
 value reported by the solver does not match the dual objective value reported
 by the solver.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalDualSolverMismatch)
+```
 """
 struct PrimalDualSolverMismatch <: AbstractFeasibilityIssue
     primal::Float64
