@@ -1134,13 +1134,6 @@ function _fix_ret(
     return ret
 end
 
-function _add_with_resize!(vec, val, i)
-    if i > length(vec)
-        resize!(vec, i)
-    end
-    return vec[i] = val
-end
-
 function _dualize2(
     model::JuMP.GenericModel,
     optimizer_constructor = nothing;
