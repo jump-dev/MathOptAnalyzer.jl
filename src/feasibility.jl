@@ -815,7 +815,8 @@ function _analyze_complementarity!(model, data)
         obj = JuMP.constraint_object(con)
         func = obj.func
         set = obj.set
-        func_val = JuMP.value.(x -> data.primal_point[x], func) - _set_value(set)
+        func_val =
+            JuMP.value.(x -> data.primal_point[x], func) - _set_value(set)
         comp_val = MOI.Utilities.set_dot(func_val, data.dual_point[con], set)
         if abs(comp_val) > data.atol
             push!(data.complementarity, ComplemetarityViolation(con, comp_val))
