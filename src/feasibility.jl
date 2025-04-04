@@ -815,7 +815,7 @@ function _analyze_complementarity!(model, data)
         obj = JuMP.constraint_object(con)
         func = obj.func
         set = obj.set
-        func_val = JuMP.value(x -> data.primal_point[x], func) - _set_value(set)
+        func_val = JuMP.value.(x -> data.primal_point[x], func) - _set_value(set)
         comp_val = MOI.Utilities.set_dot(func_val, data.dual_point[con], set)
         if abs(comp_val) > data.atol
             push!(data.complementarity, ComplemetarityViolation(con, comp_val))
@@ -824,9 +824,14 @@ function _analyze_complementarity!(model, data)
     return
 end
 
-function _set_value(set::MOI.AbstractScalarSet)
-    return 0.0
-end
+# not needed because it would have stoped in dualization before
+# function _set_value(set::MOI.AbstractScalarSet)
+#     return 0.0
+# end
+# function _set_value(set::MOI.Interval)
+#     error("Interval sets are not supported.")
+#     return (set.lower, set.upper)
+# end
 
 function _set_value(set::MOI.AbstractVectorSet)
     return zeros(MOI.dimension(set))
@@ -842,11 +847,6 @@ end
 
 function _set_value(set::MOI.EqualTo)
     return set.value
-end
-
-function _set_value(set::MOI.Interval)
-    error("Interval sets are not supported.")
-    return (set.lower, set.upper)
 end
 
 function _analyze_objectives!(
@@ -1140,7 +1140,7 @@ function _dualize2(
     kwargs...,
 )
     mode = JuMP.mode(model)
-    if mode != JuMP.AUTOMATIC
+    if mode == JuMP.MANUAL
         error("Dualization does not support solvers in $(mode) mode")
     end
     dual_model = JuMP.Model()

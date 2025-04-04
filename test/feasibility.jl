@@ -37,6 +37,7 @@ function test_no_solution()
     @constraint(model, c, x^4 >= 0) # this will make the model non-linear
     @test_throws ErrorException ModelAnalyzer.Feasibility.dual_feasibility_report(
         model,
+        point = Dict(), # to skip dual solutions error
     )
 end
 
@@ -163,6 +164,64 @@ function test_analyse_simple()
     set_silent(model)
     @variable(model, x)
     @constraint(model, c, x >= 0)
+    @objective(model, Min, x)
+
+    optimize!(model)
+
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Feasibility.Analyzer(), model)
+
+    list = ModelAnalyzer.list_of_issue_types(data)
+
+    @test length(list) == 0
+
+    return
+end
+
+function test_analyse_simple_direct()
+    model = direct_model(HiGHS.Optimizer())
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c, x >= 0)
+    @objective(model, Min, 2 * x)
+
+    optimize!(model)
+
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Feasibility.Analyzer(), model)
+
+    list = ModelAnalyzer.list_of_issue_types(data)
+
+    @test length(list) == 0
+
+    return
+end
+
+function test_with_interval()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x >= 1)
+    @constraint(model, c, 2 * x in MOI.Interval(0.0, 3.0))
+    @objective(model, Min, x)
+    optimize!(model)
+    @test !ModelAnalyzer.Feasibility._can_dualize(model)
+    # TODO this should eb a waning at least
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Feasibility.Analyzer(), model)
+    return
+end
+
+function test_analyse_many_constraint_types()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x >= 1)
+    @variable(model, y <= 0)
+    @variable(model, z == 0)
+    @variable(model, w)
+    @variable(model, 0 <= v <= 1)
+    @constraint(model, c1, x >= 0)
+    @constraint(model, c2, x <= 10)
+    @constraint(model, c3, x == 5)
+    @constraint(model, c4, y >= -1)
+    @constraint(model, c5, w == 3)
+    @constraint(model, c6, [2v] in Nonpositives()) # this should be redundant as z is fixed to 0
     @objective(model, Min, x)
 
     optimize!(model)
