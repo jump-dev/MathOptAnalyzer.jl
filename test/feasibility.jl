@@ -37,7 +37,7 @@ function test_no_solution()
     @constraint(model, c, x^4 >= 0) # this will make the model non-linear
     @test_throws ErrorException ModelAnalyzer.Feasibility.dual_feasibility_report(
         model,
-        point = Dict(), # to skip dual solutions error
+        Dict(), # to skip dual solutions error
     )
 end
 
