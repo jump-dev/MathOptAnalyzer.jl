@@ -224,6 +224,10 @@ function test_many()
     ModelAnalyzer.summarize(buf, data)
     ModelAnalyzer.summarize(buf, data, verbose = false)
 
+    redirect_stdout(buf) do
+        ModelAnalyzer.summarize(data)
+    end
+
     return
 end
 
