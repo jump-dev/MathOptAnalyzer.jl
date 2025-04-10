@@ -577,14 +577,22 @@ function _get_constraint_matrix_data(
     return
 end
 
-function _get_constraint_matrix_data(data, ref, func::Vector{<:JuMP.GenericAffExpr})
+function _get_constraint_matrix_data(
+    data,
+    ref,
+    func::Vector{<:JuMP.GenericAffExpr},
+)
     for f in func
         _get_constraint_matrix_data(data, ref, f)
     end
     return true
 end
 
-function _get_constraint_matrix_data(data, ref, func::Vector{<:JuMP.GenericQuadExpr})
+function _get_constraint_matrix_data(
+    data,
+    ref,
+    func::Vector{<:JuMP.GenericQuadExpr},
+)
     for f in func
         _get_constraint_matrix_data(data, ref, f)
     end
