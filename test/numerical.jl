@@ -20,7 +20,64 @@ function runtests()
     return
 end
 
-function test_linear()
+function test_variable_bounds()
+    model = Model()
+    @variable(model, xg <= 2e9)
+    @variable(model, xs <= 2e-9)
+    @variable(model, ys >= 3e-10)
+    @variable(model, yg >= 3e+10)
+    @variable(model, zs == 4e-11)
+    @variable(model, zg == 4e+11)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 3
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 6
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+    )
+    @test length(ret) == 3
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+    )
+    @test length(ret) == 3
+
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallBoundCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `SmallBoundCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# SmallBoundCoefficient"
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeBoundCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeBoundCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeBoundCoefficient"
+
+    return
+end
+
+function test_constraint_bounds()
+    return
+end
+
+function test_many()
     model = Model()
     @variable(model, x <= 2e9)
     @variable(model, y >= 3e-9)
@@ -39,7 +96,7 @@ function test_linear()
     @constraint(model, 1e+23 <= x <= 1e+24)
     @constraint(model, [1.0 * x] in MOI.Nonnegatives(1))
     @constraint(model, [1.0 * x * x] in MOI.Nonnegatives(1))
-    @constraint(model, [u] in MOI.Nonnegatives(1))
+    @constraint(model, u in MOI.Nonnegatives(1))
 
     @objective(model, Max, 1e8 * x + 8e-11 * y)
 
