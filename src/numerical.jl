@@ -511,6 +511,7 @@ function _get_constraint_matrix_data(
         if isapprox(first(values(func.terms)), 1.0)
             push!(data.bound_rows, VariableBoundAsConstraint(ref))
             data.matrix_nnz += 1
+            # in this case we do not count that the variable is in a constraint
             return
         end
     end
@@ -960,7 +961,9 @@ function ModelAnalyzer._verbose_summarize(
         ## What
 
         A `VariableNotInConstraints` issue is identified when a variable appears
-        in no constraints.
+        in no constraints. If a variable only appears alone in a constraint and
+        it has a coefficient of 1 it is considered a
+        `VariableNotInConstraints`, because this emulates a bound.
 
         ## Why
 

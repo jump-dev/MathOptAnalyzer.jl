@@ -74,6 +74,120 @@ function test_variable_bounds()
 end
 
 function test_constraint_bounds()
+    model = Model()
+    @variable(model, x)
+    @constraint(model, x >= 2e+10)
+    @constraint(model, x >= 2e-11)
+    @constraint(model, x == 4e-12)
+    @constraint(model, x == 4e+13)
+    @constraint(model, x <= 1e-14)
+    @constraint(model, x <= 1e+15)
+    @constraint(model, [x - 1e-16] in MOI.Nonnegatives(1))
+    @constraint(model, [x - 1e+17] in MOI.Nonnegatives(1))
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 4
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+    )
+    @test length(ret) == 8
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+    )
+    @test length(ret) == 4
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+    )
+    @test length(ret) == 4
+
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `SmallRHSCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# SmallRHSCoefficient"
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeRHSCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeRHSCoefficient"
+
+    return
+end
+
+function test_constraint_bounds_quad()
+    model = Model()
+    @variable(model, x)
+    @constraint(model, x^2 <= 1e-14)
+    @constraint(model, x^2 <= 1e+15)
+    @constraint(model, [x^2 - 1e-16] in MOI.Nonpositives(1))
+    @constraint(model, [x^2 - 1e+17] in MOI.Nonpositives(1))
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+    )
+    @test length(ret) == 0
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 0
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+    )
+    @test length(ret) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+    )
+    @test length(ret) == 2
+
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `SmallRHSCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# SmallRHSCoefficient"
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeRHSCoefficient`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeRHSCoefficient"
+
     return
 end
 
