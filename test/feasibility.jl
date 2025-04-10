@@ -250,7 +250,8 @@ function test_analyse_mip()
 
     @test length(list) == 0
 
-    ModelAnalyzer.summarize(data)
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, data)
 
     buf = IOBuffer()
     Base.show(buf, data)
@@ -340,9 +341,11 @@ function test_analyse_no_opt()
     ret = ModelAnalyzer.list_of_issues(data, list[4])
     @test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
 
-    ModelAnalyzer.summarize(data)
+    buf = IOBuffer()
 
-    ModelAnalyzer.summarize(data, verbose = false)
+    ModelAnalyzer.summarize(buf, data)
+
+    ModelAnalyzer.summarize(buf, data, verbose = false)
 
     return
 end
