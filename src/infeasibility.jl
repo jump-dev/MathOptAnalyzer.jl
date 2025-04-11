@@ -317,19 +317,20 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
                 var = collect(keys(func.terms))
                 coef1 = func.terms[var[1]]
                 coef2 = func.terms[var[2]]
-                if JuMP.value(var1) > tolerance && JuMP.value(var2) > tolerance
+                if JuMP.value(var[1]) > tolerance &&
+                   JuMP.value(var[2]) > tolerance
                     error("IIS failed due numerical instability")
                 elseif JuMP.value(var[1]) > tolerance
                     has_lower = JuMP.has_lower_bound(var[1])
                     JuMP.fix(var[1], 0.0; force = true)
-                    # or delete(model, var1)
+                    # or delete(model, var[1])
                     delete!(constraint_to_affine, con)
                     constraint_to_affine[con] = coef2 * var[2]
                     push!(de_elastisized, (con, var[1], has_lower))
                 elseif JuMP.value(var[2]) > tolerance
                     has_lower = JuMP.has_lower_bound(var[2])
                     JuMP.fix(var[2], 0.0; force = true)
-                    # or delete(model, var2)
+                    # or delete(model, var[2])
                     delete!(constraint_to_affine, con)
                     constraint_to_affine[con] = coef1 * var[1]
                     push!(de_elastisized, (con, var[2], has_lower))
@@ -572,7 +573,7 @@ function ModelAnalyzer._summarize(
 end
 
 function ModelAnalyzer._summarize(io::IO, issue::IrreducibleInfeasibleSubset)
-    return print(io, "IIS: ", join(map(issue.constraint, _name), ", "))
+    return print(io, "IIS: ", join(map(_name, issue.constraint), ", "))
 end
 
 function ModelAnalyzer._verbose_summarize(
@@ -631,7 +632,7 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Irreducible Infeasible Subset: ",
-        join(map(issue.constraint, _name), ", "),
+        join(map(_name, issue.constraint), ", "),
     )
 end
 

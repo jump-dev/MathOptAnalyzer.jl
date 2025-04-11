@@ -260,6 +260,114 @@ function test_iis()
     @test length(ret[].constraint) == 2
     @test ret[].constraint[1] == c2
     @test ret[].constraint[2] == c1
+    #
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Infeasibility.IrreducibleInfeasibleSubset,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `IrreducibleInfeasibleSubset`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Infeasibility.IrreducibleInfeasibleSubset,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# IrreducibleInfeasibleSubset"
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Irreducible Infeasible Subset: ")
+    @test contains(str, ", ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test startswith(str, "IIS: ")
+    @test contains(str, ", ")
+
+    buf = IOBuffer()
+    Base.show(buf, data)
+    str = String(take!(buf))
+    return
+end
+
+function test_iis_multiple()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c3, x + y <= 1.5)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test c2 in Set([ret[].constraint[1], ret[].constraint[2]])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ⊆ Set([c3, c2, c1])
+    return
+end
+
+function test_iis_interval_right()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, 0 <= x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    return
+end
+
+function test_iis_interval_left()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, 2 <= x + y <= 5)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
     return
 end
 
