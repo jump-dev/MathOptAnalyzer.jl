@@ -261,7 +261,9 @@ function ModelAnalyzer.analyze(
     end
     iis = iis_elastic_filter(model, optimizer)
     # for now, only one iis is computed
-    push!(out.iis, IrreducibleInfeasibleSubset(iis))
+    if iis !== nothing
+        push!(out.iis, IrreducibleInfeasibleSubset(iis))
+    end
 
     return out
 end
@@ -278,7 +280,7 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
         println(
             "iis resolver cannot continue because model is found to be $(status) by the solver",
         )
-        return
+        return nothing
     end
 
     model, reference_map = JuMP.copy_model(original_model)
