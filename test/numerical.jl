@@ -893,6 +893,14 @@ function test_constraint_nonconvex()
     return
 end
 
+function test_empty_model()
+    model = Model()
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
 # TODO, test SDP and empty model
 
 function test_many()
