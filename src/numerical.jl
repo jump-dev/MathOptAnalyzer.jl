@@ -280,23 +280,6 @@ struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
 end
 
 """
-    NonconvexQuadraticConstraint
-
-The `NonconvexQuadraticConstraint` issue is identified when a quadratic
-constraint is non-convex.
-
-For more information, run:
-```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
-)
-```
-"""
-struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
-    ref::JuMP.ConstraintRef
-end
-
-"""
     SmallMatrixQuadraticCoefficient <: AbstractNumericalIssue
 
 The `SmallMatrixQuadraticCoefficient` issue is identified when a quadratic
@@ -334,6 +317,38 @@ struct LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
     variable1::JuMP.VariableRef
     variable2::JuMP.VariableRef
     coefficient::Float64
+end
+
+"""
+    NonconvexQuadraticObjective <: AbstractNumericalIssue
+
+The `NonconvexQuadraticObjective` issue is identified when a quadratic
+objective function is non-convex.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.NonconvexQuadraticObjective
+)
+```
+"""
+struct NonconvexQuadraticObjective <: AbstractNumericalIssue end
+
+"""
+    NonconvexQuadraticConstraint
+
+The `NonconvexQuadraticConstraint` issue is identified when a quadratic
+constraint is non-convex.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(
+    ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
+)
+```
+"""
+struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
+    ref::JuMP.ConstraintRef
 end
 
 """
@@ -395,7 +410,8 @@ Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
     has_quadratic_objective::Bool = false
     objective_quadratic_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     matrix_quadratic_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
-    nonconvex_objective::Bool = false
+    nonconvex_objective::Vector{NonconvexQuadraticObjective} =
+        NonconvexQuadraticObjective[]
     objective_quadratic_small::Vector{SmallObjectiveQuadraticCoefficient} =
         SmallObjectiveQuadraticCoefficient[]
     objective_quadratic_large::Vector{LargeObjectiveQuadraticCoefficient} =
@@ -406,82 +422,6 @@ function _update_range(range::Vector{Float64}, value::Number)
     range[1] = min(range[1], abs(value))
     range[2] = max(range[2], abs(value))
     return 1
-end
-
-function _get_constraint_data(
-    data,
-    ref::JuMP.ConstraintRef,
-    func::JuMP.GenericAffExpr;
-    ignore_empty = false,
-)
-    if length(func.terms) == 1
-        if isapprox(first(values(func.terms)), 1.0)
-            push!(data.bound_rows, VariableBoundAsConstraint(ref))
-            data.matrix_nnz += 1
-            return
-        end
-    end
-    nnz = 0
-    for (variable, coefficient) in func.terms
-        if iszero(coefficient)
-            continue
-        end
-        nnz += _update_range(data.matrix_range, coefficient)
-        if abs(coefficient) < data.threshold_small
-            push!(
-                data.matrix_small,
-                SmallMatrixCoefficient(ref, variable, coefficient),
-            )
-        elseif abs(coefficient) > data.threshold_large
-            push!(
-                data.matrix_large,
-                LargeMatrixCoefficient(ref, variable, coefficient),
-            )
-        end
-        push!(data.variables_in_constraints, variable)
-    end
-    if nnz == 0
-        if !ignore_empty
-            push!(data.empty_rows, EmptyConstraint(ref))
-        end
-        return
-    end
-    if nnz / data.number_of_variables > data.threshold_dense_fill_in &&
-       nnz > data.threshold_dense_entries
-        push!(data.dense_rows, DenseConstraint(ref, nnz))
-    end
-    data.matrix_nnz += nnz
-    return
-end
-
-function _get_constraint_data(
-    data,
-    ref::JuMP.ConstraintRef,
-    func::JuMP.GenericQuadExpr,
-)
-    nnz = 0
-    for (v, coefficient) in func.terms
-        if iszero(coefficient)
-            continue
-        end
-        nnz += _update_range(data.matrix_quadratic_range, coefficient)
-        if abs(coefficient) < data.threshold_small
-            push!(
-                data.matrix_quadratic_small,
-                SmallMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
-            )
-        elseif abs(coefficient) > data.threshold_large
-            push!(
-                data.matrix_quadratic_large,
-                LargeMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
-            )
-        end
-        push!(data.variables_in_constraints, v.a)
-        push!(data.variables_in_constraints, v.b)
-    end
-    data.has_quadratic_constraints = true
-    _get_constraint_data(data, ref, func.aff, ignore_empty = nnz > 0)
-    return
 end
 
 function _get_variable_data(data, variable, coefficient::Number)
@@ -546,9 +486,13 @@ function _get_objective_data(data, func::JuMP.GenericQuadExpr)
     end
     data.has_quadratic_objective = true
     if data.sense == JuMP.MAX_SENSE
-        data.nonconvex_objective = !_quadratic_vexity(func, -1)
+        if !_quadratic_vexity(func, -1)
+            push!(data.nonconvex_objective, NonconvexQuadraticObjective())
+        end
     elseif data.sense == JuMP.MIN_SENSE
-        data.nonconvex_objective = !_quadratic_vexity(func, 1)
+        if !_quadratic_vexity(func, 1)
+            push!(data.nonconvex_objective, NonconvexQuadraticObjective())
+        end
     end
     return
 end
@@ -577,14 +521,100 @@ function _quadratic_vexity(func::JuMP.GenericQuadExpr, sign::Int)
     return LinearAlgebra.issuccess(ret)
 end
 
-function _get_constraint_data(data, func::Vector{JuMP.GenericAffExpr}, set)
+function _get_constraint_matrix_data(
+    data,
+    ref::JuMP.ConstraintRef,
+    func::JuMP.GenericAffExpr;
+    ignore_extras = false,
+)
+    if length(func.terms) == 1
+        if !ignore_extras && isapprox(first(values(func.terms)), 1.0)
+            push!(data.bound_rows, VariableBoundAsConstraint(ref))
+            data.matrix_nnz += 1
+            # in this case we do not count that the variable is in a constraint
+            return
+        end
+    end
+    nnz = 0
+    for (variable, coefficient) in func.terms
+        if iszero(coefficient)
+            continue
+        end
+        nnz += _update_range(data.matrix_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(
+                data.matrix_small,
+                SmallMatrixCoefficient(ref, variable, coefficient),
+            )
+        elseif abs(coefficient) > data.threshold_large
+            push!(
+                data.matrix_large,
+                LargeMatrixCoefficient(ref, variable, coefficient),
+            )
+        end
+        push!(data.variables_in_constraints, variable)
+    end
+    if nnz == 0
+        if !ignore_extras
+            push!(data.empty_rows, EmptyConstraint(ref))
+        end
+        return
+    end
+    if nnz / data.number_of_variables > data.threshold_dense_fill_in &&
+       nnz > data.threshold_dense_entries
+        push!(data.dense_rows, DenseConstraint(ref, nnz))
+    end
+    data.matrix_nnz += nnz
+    return
+end
+
+function _get_constraint_matrix_data(
+    data,
+    ref::JuMP.ConstraintRef,
+    func::JuMP.GenericQuadExpr,
+)
+    nnz = 0
+    for (v, coefficient) in func.terms
+        if iszero(coefficient)
+            continue
+        end
+        nnz += _update_range(data.matrix_quadratic_range, coefficient)
+        if abs(coefficient) < data.threshold_small
+            push!(
+                data.matrix_quadratic_small,
+                SmallMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
+            )
+        elseif abs(coefficient) > data.threshold_large
+            push!(
+                data.matrix_quadratic_large,
+                LargeMatrixQuadraticCoefficient(ref, v.a, v.b, coefficient),
+            )
+        end
+        push!(data.variables_in_constraints, v.a)
+        push!(data.variables_in_constraints, v.b)
+    end
+    data.has_quadratic_constraints = true
+    _get_constraint_matrix_data(data, ref, func.aff, ignore_extras = nnz > 0)
+    return
+end
+
+function _get_constraint_matrix_data(
+    data,
+    ref,
+    func::Vector{F},
+) where {F<:Union{JuMP.GenericAffExpr,JuMP.GenericQuadExpr}}
     for f in func
-        _get_constraint_data(data, ref, f, set)
+        _get_constraint_matrix_data(data, ref, f)
     end
     return true
 end
 
-function _get_constraint_data(data, func::Vector{JuMP.GenericQuadExpr}, set)
+function _get_constraint_data(
+    data,
+    ref,
+    func::Vector{F},
+    set,
+) where {F<:Union{JuMP.GenericAffExpr,JuMP.GenericQuadExpr}}
     for f in func
         _get_constraint_data(data, ref, f, set)
     end
@@ -605,9 +635,10 @@ function _get_constraint_data(data, ref, func::JuMP.GenericAffExpr, set)
     return
 end
 
+# this function is basically checking just the RHS just like the above
+# skip additional checks for quadratics in non simples sets
 function _get_constraint_data(data, ref, func::JuMP.GenericQuadExpr, set)
     _get_constraint_data(data, ref, func.aff, set)
-    # skip additional checks for quadratics in non-scalar simples sets
     return
 end
 
@@ -615,7 +646,7 @@ function _get_constraint_data(
     data,
     ref,
     func::JuMP.GenericQuadExpr,
-    set::MOI.LessThan,
+    set::Union{MOI.LessThan,MOI.Nonpositives},
 )
     _get_constraint_data(data, ref, func.aff, set)
     if !_quadratic_vexity(func, 1)
@@ -647,7 +678,7 @@ function _get_constraint_data(
     data,
     ref,
     func::JuMP.GenericQuadExpr,
-    set::MOI.GreaterThan,
+    set::Union{MOI.GreaterThan,MOI.Nonnegatives},
 )
     _get_constraint_data(data, ref, func.aff, set)
     if !_quadratic_vexity(func, -1)
@@ -679,7 +710,7 @@ function _get_constraint_data(
     data,
     ref,
     func::JuMP.GenericQuadExpr,
-    set::Union{MOI.EqualTo,MOI.Interval},
+    set::Union{MOI.EqualTo,MOI.Interval,MOI.Zeros},
 )
     _get_constraint_data(data, ref, func.aff, set)
     push!(data.nonconvex_rows, NonconvexQuadraticConstraint(ref))
@@ -733,15 +764,12 @@ function _get_constraint_data(
     return
 end
 
-function _get_constraint_data(data, func::Vector{JuMP.VariableRef})
+function _get_constraint_matrix_data(data, func::Vector{JuMP.VariableRef})
     for var in func
         push!(data.variables_in_constraints, var)
     end
     return
 end
-
-# Default fallback for unsupported constraints.
-_update_range(data, func, set) = false
 
 """
     analyze(model::Model; threshold_dense_fill_in = 0.10, threshold_dense_entries = 1000, threshold_small = 1e-5, threshold_large = 1e+5)
@@ -779,6 +807,9 @@ function ModelAnalyzer.analyze(
         if JuMP.has_upper_bound(var)
             _get_variable_data(data, var, JuMP.upper_bound(var))
         end
+        if JuMP.is_fixed(var)
+            _get_variable_data(data, var, JuMP.fix_value(var))
+        end
     end
     # constraints pass
     for (F, S) in JuMP.list_of_constraint_types(model)
@@ -790,13 +821,13 @@ function ModelAnalyzer.analyze(
         if F == Vector{JuMP.VariableRef}
             for con in JuMP.all_constraints(model, F, S)
                 con_obj = JuMP.constraint_object(con)
-                _get_constraint_data(data, con_obj.func)
+                _get_constraint_matrix_data(data, con_obj.func)
             end
             continue
         end
         for con in JuMP.all_constraints(model, F, S)
             con_obj = JuMP.constraint_object(con)
-            _get_constraint_data(data, con, con_obj.func)
+            _get_constraint_matrix_data(data, con, con_obj.func)
             _get_constraint_data(data, con, con_obj.func, con_obj.set)
         end
     end
@@ -894,10 +925,6 @@ function ModelAnalyzer._summarize(
     return print(io, "# LargeObjectiveQuadraticCoefficient")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{NonconvexQuadraticConstraint})
-    return print(io, "# NonconvexQuadraticConstraint")
-end
-
 function ModelAnalyzer._summarize(
     io::IO,
     ::Type{SmallMatrixQuadraticCoefficient},
@@ -912,6 +939,14 @@ function ModelAnalyzer._summarize(
     return print(io, "# LargeMatrixQuadraticCoefficient")
 end
 
+function ModelAnalyzer._summarize(io::IO, ::Type{NonconvexQuadraticObjective})
+    return print(io, "# NonconvexQuadraticObjective")
+end
+
+function ModelAnalyzer._summarize(io::IO, ::Type{NonconvexQuadraticConstraint})
+    return print(io, "# NonconvexQuadraticConstraint")
+end
+
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     ::Type{VariableNotInConstraints},
@@ -924,7 +959,9 @@ function ModelAnalyzer._verbose_summarize(
         ## What
 
         A `VariableNotInConstraints` issue is identified when a variable appears
-        in no constraints.
+        in no constraints. If a variable only appears alone in a constraint and
+        it has a coefficient of 1 it is considered a
+        `VariableNotInConstraints`, because this emulates a bound.
 
         ## Why
 
@@ -948,6 +985,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{EmptyConstraint})
     return print(
         io,
         """
+        # `EmptyConstraint`
+
         ## What
 
         An `EmptyConstraint` issue is identified when a constraint has no
@@ -978,6 +1017,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `VariableBoundAsConstraint`
+
         ## What
 
         A `VariableBoundAsConstraint` issue is identified when a constraint is
@@ -1005,6 +1046,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{DenseConstraint})
     return print(
         io,
         """
+        # `DenseConstraint`
+
         ## What
 
         A `DenseConstraint` issue is identified when a constraint has a high
@@ -1038,6 +1081,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `SmallMatrixCoefficient`
+
         ## What
 
         A `SmallMatrixCoefficient` issue is identified when a constraint has a
@@ -1069,6 +1114,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `LargeMatrixCoefficient`
+
         ## What
 
         A `LargeMatrixCoefficient` issue is identified when a constraint has a
@@ -1097,6 +1144,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{SmallBoundCoefficient})
     return print(
         io,
         """
+        # `SmallBoundCoefficient`
+
         ## What
 
         A `SmallBoundCoefficient` issue is identified when a variable has a
@@ -1124,6 +1173,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{LargeBoundCoefficient})
     return print(
         io,
         """
+        # `LargeBoundCoefficient`
+
         ## What
 
         A `LargeBoundCoefficient` issue is identified when a variable has a
@@ -1151,6 +1202,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{SmallRHSCoefficient})
     return print(
         io,
         """
+        # `SmallRHSCoefficient`
+
         ## What
 
         A `SmallRHSCoefficient` issue is identified when a constraint has a
@@ -1179,6 +1232,8 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{LargeRHSCoefficient})
     return print(
         io,
         """
+        # `LargeRHSCoefficient`
+
         ## What
 
         A `LargeRHSCoefficient` issue is identified when a constraint has a
@@ -1210,6 +1265,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `SmallObjectiveCoefficient`
+
         ## What
 
         A `SmallObjectiveCoefficient` issue is identified when the objective
@@ -1241,6 +1298,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `LargeObjectiveCoefficient`
+
         ## What
 
         A `LargeObjectiveCoefficient` issue is identified when the objective
@@ -1272,6 +1331,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `SmallObjectiveQuadraticCoefficient`
+
         ## What
 
         A `SmallObjectiveQuadraticCoefficient` issue is identified when the
@@ -1303,6 +1364,8 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         """
+        # `LargeObjectiveQuadraticCoefficient`
+
         ## What
 
         A `LargeObjectiveQuadraticCoefficient` issue is identified when the
@@ -1329,11 +1392,82 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
+    ::Type{SmallMatrixQuadraticCoefficient},
+)
+    return print(
+        io,
+        """
+        # `SmallMatrixQuadraticCoefficient`
+
+        ## What
+
+        A `SmallMatrixQuadraticCoefficient` issue is identified when a quadratic
+        constraint has a coefficient with a small absolute value.
+
+        ## Why
+
+        Small coefficients can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the coefficient is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        - https://jump.dev/JuMP.jl/stable/tutorials/getting_started/tolerances/
+        """,
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{NonconvexQuadraticObjective},
+)
+    return print(
+        io,
+        """
+        # `NonconvexQuadraticObjective`
+
+        ## What
+
+        A `NonconvexQuadraticObjective` issue is identified when a quadratic
+        objective is nonconvex, that is, the quadratic matrix is not positive
+        semidefinite for minimization or the quadratic matrix is not negative
+        semidefinite for maximization.
+
+        ## Why
+
+        Nonconvex objectives are not expected by many solver and can lead to
+        wrong solutions or even convergence issues.
+
+        ## How to fix
+
+        Check if the objective is correct. Coefficient signs might have been
+        inverted. This also occurs if user fix a variable to emulate a
+        parameter, in this case some solvers will not be able to solve the
+        model properly, other tools such as ParametricOptInteface.jl might be
+        more suitable than fixing variables.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
     ::Type{NonconvexQuadraticConstraint},
 )
     return print(
         io,
         """
+        # `NonconvexQuadraticConstraint`
+
         ## What
 
         A `NonconvexQuadraticConstraint` issue is identified when a quadratic
@@ -1362,42 +1496,13 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    ::Type{SmallMatrixQuadraticCoefficient},
-)
-    return print(
-        io,
-        """
-        ## What
-
-        A `SmallMatrixQuadraticCoefficient` issue is identified when a quadratic
-        constraint has a coefficient with a small absolute value.
-
-        ## Why
-
-        Small coefficients can lead to numerical instability in the solution
-        process.
-
-        ## How to fix
-
-        Check if the coefficient is correct. Check if the units of variables and
-        coefficients are correct. Check if the number makes is
-        reasonable given that solver have tolerances. Sometimes these
-        coefficients can be replaced by zeros.
-
-        ## More information
-
-        - https://jump.dev/JuMP.jl/stable/tutorials/getting_started/tolerances/
-        """,
-    )
-end
-
-function ModelAnalyzer._verbose_summarize(
-    io::IO,
     ::Type{LargeMatrixQuadraticCoefficient},
 )
     return print(
         io,
         """
+        # `LargeMatrixQuadraticCoefficient`
+
         ## What
 
         A `LargeMatrixQuadraticCoefficient` issue is identified when a quadratic
@@ -1512,10 +1617,6 @@ function ModelAnalyzer._summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::NonconvexQuadraticConstraint)
-    return print(io, _name(issue.ref))
-end
-
 function ModelAnalyzer._summarize(
     io::IO,
     issue::SmallMatrixQuadraticCoefficient,
@@ -1546,6 +1647,14 @@ function ModelAnalyzer._summarize(
         " : ",
         issue.coefficient,
     )
+end
+
+function ModelAnalyzer._summarize(io::IO, ::NonconvexQuadraticObjective)
+    return print(io, "Objective is Nonconvex quadratic")
+end
+
+function ModelAnalyzer._summarize(io::IO, issue::NonconvexQuadraticConstraint)
+    return print(io, _name(issue.ref))
 end
 
 function ModelAnalyzer._verbose_summarize(
@@ -1699,13 +1808,6 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    issue::NonconvexQuadraticConstraint,
-)
-    return print(io, "Constraint: ", _name(issue.ref))
-end
-
-function ModelAnalyzer._verbose_summarize(
-    io::IO,
     issue::SmallMatrixQuadraticCoefficient,
 )
     return print(
@@ -1736,6 +1838,20 @@ function ModelAnalyzer._verbose_summarize(
         ") with coefficient ",
         issue.coefficient,
     )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::NonconvexQuadraticObjective,
+)
+    return ModelAnalyzer._summarize(io, issue)
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::NonconvexQuadraticConstraint,
+)
+    return print(io, "Constraint: ", _name(issue.ref))
 end
 
 function ModelAnalyzer.list_of_issues(
@@ -1820,13 +1936,6 @@ end
 
 function ModelAnalyzer.list_of_issues(
     data::Data,
-    ::Type{NonconvexQuadraticConstraint},
-)
-    return data.nonconvex_rows
-end
-
-function ModelAnalyzer.list_of_issues(
-    data::Data,
     ::Type{SmallMatrixQuadraticCoefficient},
 )
     return data.matrix_quadratic_small
@@ -1837,6 +1946,20 @@ function ModelAnalyzer.list_of_issues(
     ::Type{LargeMatrixQuadraticCoefficient},
 )
     return data.matrix_quadratic_large
+end
+
+function ModelAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{NonconvexQuadraticObjective},
+)
+    return data.nonconvex_objective
+end
+
+function ModelAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{NonconvexQuadraticConstraint},
+)
+    return data.nonconvex_rows
 end
 
 function ModelAnalyzer.list_of_issue_types(data::Data)
@@ -1856,9 +1979,10 @@ function ModelAnalyzer.list_of_issue_types(data::Data)
         LargeObjectiveCoefficient,
         SmallObjectiveQuadraticCoefficient,
         LargeObjectiveQuadraticCoefficient,
-        NonconvexQuadraticConstraint,
         SmallMatrixQuadraticCoefficient,
         LargeMatrixQuadraticCoefficient,
+        NonconvexQuadraticConstraint,
+        NonconvexQuadraticObjective,
     )
         if !isempty(ModelAnalyzer.list_of_issues(data, type))
             push!(ret, type)

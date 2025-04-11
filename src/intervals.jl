@@ -66,28 +66,31 @@ function Base.iszero(a::Interval)
     return iszero(a.hi) && iszero(a.lo)
 end
 
-Base.:+(a::Interval) = a
-Base.:-(a::Interval) = Interval(-a.hi, -a.lo)
+# this code is only used for interval += scalar_coef * interval
+# so only bivariate + and * are needes
 
-function Base.:+(a::Interval{T}, b::T) where {T<:Real}
-    return Interval(a.lo + b, a.hi + b)
-end
-Base.:+(b::T, a::Interval{T}) where {T<:Real} = a + b
+# Base.:+(a::Interval) = a
+# Base.:-(a::Interval) = Interval(-a.hi, -a.lo)
 
-function Base.:-(a::Interval{T}, b::T) where {T<:Real}
-    return Interval(a.lo - b, a.hi - b)
-end
-function Base.:-(b::T, a::Interval{T}) where {T<:Real}
-    return Interval(b - a.hi, b - a.lo)
-end
+# function Base.:+(a::Interval{T}, b::T) where {T<:Real}
+#     return Interval(a.lo + b, a.hi + b)
+# end
+# Base.:+(b::T, a::Interval{T}) where {T<:Real} = a + b
+
+# function Base.:-(a::Interval{T}, b::T) where {T<:Real}
+#     return Interval(a.lo - b, a.hi - b)
+# end
+# function Base.:-(b::T, a::Interval{T}) where {T<:Real}
+#     return Interval(b - a.hi, b - a.lo)
+# end
 
 function Base.:+(a::Interval{T}, b::Interval{T}) where {T<:Real}
     return Interval(a.lo + b.lo, a.hi + b.hi)
 end
 
-function Base.:-(a::Interval{T}, b::Interval{T}) where {T<:Real}
-    return Interval(a.lo - b.hi, a.hi - b.lo)
-end
+# function Base.:-(a::Interval{T}, b::Interval{T}) where {T<:Real}
+#     return Interval(a.lo - b.hi, a.hi - b.lo)
+# end
 
 ## Multiplication
 function Base.:*(x::T, a::Interval{T}) where {T<:Real}
@@ -99,6 +102,6 @@ function Base.:*(x::T, a::Interval{T}) where {T<:Real}
     end
 end
 
-Base.:*(a::Interval{T}, x::T) where {T<:Real} = x * a
+# Base.:*(a::Interval{T}, x::T) where {T<:Real} = x * a
 
 Base.convert(::Type{Interval{T}}, x::T) where {T<:Real} = Interval(x, x)

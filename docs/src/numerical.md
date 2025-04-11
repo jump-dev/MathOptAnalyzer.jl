@@ -31,9 +31,10 @@ ModelAnalyzer.Numerical.SmallObjectiveCoefficient
 ModelAnalyzer.Numerical.LargeObjectiveCoefficient
 ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient
 ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient
-ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
 ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient
 ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient
+ModelAnalyzer.Numerical.NonconvexQuadraticObjective
+ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
 ```
 
 These issues are saved in the data structure that is returned from the `ModelAnalyzer.analyze` function:
