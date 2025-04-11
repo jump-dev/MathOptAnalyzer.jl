@@ -819,6 +819,44 @@ function test_objective_nonconvex()
     return
 end
 
+function test_objective_nonconvex_2()
+    model = Model()
+    @variable(model, x <= 1)
+    @constraint(model, 3 * x <= 4)
+    @objective(model, Min, -x^2)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+    )
+    @test length(ret) == 1
+    #
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `NonconvexQuadraticObjective`")
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# NonconvexQuadraticObjective"
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Objective is Nonconvex quadratic")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test startswith(str, "Objective is Nonconvex quadratic")
+    return
+end
+
 function test_constraint_nonconvex()
     model = Model()
     @variable(model, x <= 1)
@@ -864,6 +902,7 @@ function test_many()
     @variable(model, z == 4e-9)
     @variable(model, w[1:1] in MOI.Nonnegatives(1))
     @variable(model, u[1:1])
+    @variable(model, v[1:1])
     @constraint(model, x + y <= 4e8)
     @constraint(model, x + y + 5e7 <= 2)
     @constraint(model, 7e6 * x + 6e-15 * y + 2e-12 >= 0)
@@ -878,6 +917,8 @@ function test_many()
     @constraint(model, [1.0 * x] in MOI.Nonnegatives(1))
     @constraint(model, [1.0 * x * x] in MOI.Nonnegatives(1))
     @constraint(model, u in MOI.Nonnegatives(1))
+    @constraint(model, v in MOI.PositiveSemidefiniteConeTriangle(1))
+    @constraint(model, [v[] - 1.0] in MOI.PositiveSemidefiniteConeTriangle(1))
 
     @objective(model, Max, 1e8 * x + 8e-11 * y)
 
