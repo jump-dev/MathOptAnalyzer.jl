@@ -177,6 +177,69 @@ function test_range()
     return
 end
 
+function test_range_neg()
+    model = Model()
+    @variable(model, 10 <= x <= 11)
+    @variable(model, -11 <= y <= -1)
+    @constraint(model, c, x - y <= 1)
+    @objective(model, Max, x + y)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test ret[] ==
+          ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
+        c,
+        11.0,
+        22.0,
+        MOI.LessThan{Float64}(1.0),
+    )
+    return
+end
+
+function test_range_equalto()
+    model = Model()
+    @variable(model, x == 1)
+    @variable(model, y == 2)
+    @constraint(model, c, x + y == 1)
+    @objective(model, Max, x + y)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test ret[] ==
+          ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
+        c,
+        3.0,
+        3.0,
+        MOI.EqualTo{Float64}(1.0),
+    )
+    return
+end
+
+function test_range_equalto()
+    model = Model()
+    @variable(model, x == 1)
+    @variable(model, y == 2)
+    @constraint(model, c, 3x + 2y == 1)
+    @objective(model, Max, x + y)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test ret[] ==
+          ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
+        c,
+        7.0,
+        7.0,
+        MOI.EqualTo{Float64}(1.0),
+    )
+    return
+end
+
 function test_range_greaterthan()
     model = Model()
     @variable(model, 10 <= x <= 11)
