@@ -258,8 +258,7 @@ function test_iis()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test ret[].constraint[1] == c2
-    @test ret[].constraint[2] == c1
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -288,6 +287,11 @@ function test_iis()
     buf = IOBuffer()
     Base.show(buf, data)
     str = String(take!(buf))
+    @test startswith(str, "Infeasibility analysis found 1 issues")
+
+    ModelAnalyzer.summarize(buf, data, verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "## Infeasibility Analysis\n\n")
     return
 end
 
@@ -352,6 +356,35 @@ function test_iis_interval_left()
     @variable(model, 0 <= y <= 20)
     @constraint(model, c1, x + y <= 1)
     @constraint(model, c2, 2 <= x + y <= 5)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    return
+end
+
+function test_iis_spare()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @variable(model, 0 <= z <= 20)
+    @constraint(model, c0, 2z <= 1)
+    @constraint(model, c00, 3z <= 1)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
     @objective(model, Max, x + y)
     optimize!(model)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Infeasibility.Analyzer(), model)
