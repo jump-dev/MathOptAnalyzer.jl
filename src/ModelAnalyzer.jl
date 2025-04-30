@@ -109,4 +109,5 @@ include("numerical.jl")
 include("feasibility.jl")
 include("infeasibility.jl")
 
+include("jump.jl")
 end

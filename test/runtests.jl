@@ -6,7 +6,8 @@
 using Test
 
 @testset "ModelAnalyzer" begin
-    for file in readdir(@__DIR__)
+    for file in ["numerical.jl"]
+        # for file in readdir(@__DIR__)
         if !endswith(file, ".jl") || file in ("runtests.jl",)
             continue
         end

@@ -82,21 +82,22 @@ function test_constraint_bounds()
     @constraint(model, x == 4e+13)
     @constraint(model, x <= 1e-14)
     @constraint(model, x <= 1e+15)
+    @constraint(model, [x] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e-16] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e+17] in MOI.Nonnegatives(1))
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
-    @test length(list) == 4
+    @test length(list) == 3
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.VariableBoundAsConstraint,
     )
-    @test length(ret) == 8
+    @test length(ret) == 6
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.VariableNotInConstraints,
     )
-    @test length(ret) == 1
+    @test length(ret) == 0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.SmallRHSCoefficient,
