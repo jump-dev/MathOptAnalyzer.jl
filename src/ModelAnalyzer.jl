@@ -25,7 +25,7 @@ See [`summarize`](@ref), [`list_of_issues`](@ref), and
 function analyze end
 
 """
-    summarize([io::IO,] AbstractData; verbose = true, max_issues = typemax(Int), kwargs...)
+    summarize([io::IO,] AbstractData; verbose = true, max_issues = 10, kwargs...)
 
 Print a summary of the analysis results contained in `AbstractData` to the
 specified IO stream. If no IO stream is provided, it defaults to `stdout`.
@@ -84,12 +84,16 @@ function summarize(
     io::IO,
     issues::Vector{T};
     verbose = true,
-    max_issues = typemax(Int),
+    max_issues = 10,
 ) where {T<:AbstractIssue}
     summarize(io, T, verbose = verbose)
     print(io, "\n## Number of issues\n\n")
     print(io, "Found ", length(issues), " issues")
     print(io, "\n\n## List of issues\n\n")
+    if length(issues) > max_issues
+        print(io, "Showing first ", max_issues, " issues " *
+        "($(length(issues) - max_issues) issues ommitted)\n\n")
+    end
     for issue in first(issues, max_issues)
         print(io, " * ")
         summarize(io, issue, verbose = verbose)
