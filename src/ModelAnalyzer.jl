@@ -27,7 +27,7 @@ See [`summarize`](@ref), [`list_of_issues`](@ref), and
 function analyze end
 
 """
-    summarize([io::IO,] AbstractData; name_source = nothing, verbose = true, max_issues = typemax(Int), kwargs...)
+    summarize([io::IO,] AbstractData; model = nothing, verbose = true, max_issues = typemax(Int), kwargs...)
 
 Print a summary of the analysis results contained in `AbstractData` to the
 specified IO stream. If no IO stream is provided, it defaults to `stdout`.
@@ -43,11 +43,11 @@ be a subtype of `AbstractIssue`). In the verbose case it will provide a text
 explaning the issue. In the non-verbose case it will provide just the issue
 name.
 
-    summarize([io::IO,] issue::AbstractIssue; name_source = nothing, verbose = true)
+    summarize([io::IO,] issue::AbstractIssue; model = nothing, verbose = true)
 
 This variant allows summarizing a single issue instance of type `AbstractIssue`.
-The model tha led to the issue can be provided to `name_source`, it will be used
-to generate the name of variables and constraints in the issue summary.
+The model that led to the issue can be provided to `model`, it will be
+used to generate the name of variables and constraints in the issue summary.
 """
 function summarize end
 
@@ -79,20 +79,20 @@ end
 function summarize(
     io::IO,
     issue::AbstractIssue;
-    name_source = nothing,
+    model = nothing,
     verbose = true,
 )
     if verbose
-        return _verbose_summarize(io, issue, name_source)
+        return _verbose_summarize(io, issue, model)
     else
-        return _summarize(io, issue, name_source)
+        return _summarize(io, issue, model)
     end
 end
 
 function summarize(
     io::IO,
     issues::Vector{T};
-    name_source = nothing,
+    model = nothing,
     verbose = true,
     max_issues = typemax(Int),
 ) where {T<:AbstractIssue}
@@ -102,7 +102,7 @@ function summarize(
     print(io, "\n\n## List of issues\n\n")
     for issue in first(issues, max_issues)
         print(io, " * ")
-        summarize(io, issue, verbose = verbose, name_source = name_source)
+        summarize(io, issue, verbose = verbose, model = model)
         print(io, "\n")
     end
     return
