@@ -84,8 +84,17 @@ data = ModelAnalyzer.analyze(
     model,
     optimizer = HiGHS.Optimizer,
 )
-# print report
+
+# print report to the screen
 ModelAnalyzer.summarize(data)
+
+# or print ehte report to a file
+
+# open a file
+open("my_report.txt", "w") do io
+    # print report
+    ModelAnalyzer.summarize(io, data)
+end
 ```
 
 The `ModelAnalyzer.analyze(...)` function can always take the keyword arguments:
@@ -117,6 +126,6 @@ issues = ModelAnalyzer.list_of_issues(data, list[1])
 # the list of issues of the given type can be summarized with:
 ModelAnalyzer.summarize(data, issues)
 
-# infdividual issues can also be summarized
+# individual issues can also be summarized
 ModelAnalyzer.summarize(data, issues[1])
 ```

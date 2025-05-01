@@ -219,7 +219,7 @@ function test_range_equalto()
     return
 end
 
-function test_range_equalto()
+function test_range_equalto_2()
     model = Model()
     @variable(model, x == 1)
     @variable(model, y == 2)
@@ -261,7 +261,7 @@ function test_range_greaterthan()
     return
 end
 
-function test_range_equalto()
+function test_range_equalto_3()
     model = Model()
     @variable(model, 10 <= x <= 11)
     @variable(model, 1 <= y <= 11)

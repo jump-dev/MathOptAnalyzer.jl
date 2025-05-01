@@ -992,6 +992,13 @@ function test_qp_range()
     ModelAnalyzer.summarize(buf, data)
     ModelAnalyzer.summarize(buf, data, verbose = false)
 
+    open("my_report.txt", "w") do io
+        return ModelAnalyzer.summarize(io, data)
+    end
+
+    file_data = read("my_report.txt", String)
+    @test occursin("## Numerical Analysis", file_data)
+
     return
 end
 
