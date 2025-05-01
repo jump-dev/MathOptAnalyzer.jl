@@ -12,7 +12,6 @@ function ModelAnalyzer.analyze(
 ) where {T<:ModelAnalyzer.AbstractAnalyzer}
     moi_model = JuMP.backend(model)
     result = ModelAnalyzer.analyze(analyzer, moi_model; kwargs...)
-    # return JuMPData(result, model)
     return result
 end
 
