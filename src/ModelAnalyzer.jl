@@ -91,8 +91,12 @@ function summarize(
     print(io, "Found ", length(issues), " issues")
     print(io, "\n\n## List of issues\n\n")
     if length(issues) > max_issues
-        print(io, "Showing first ", max_issues, " issues " *
-        "($(length(issues) - max_issues) issues ommitted)\n\n")
+        print(
+            io,
+            "Showing first ",
+            max_issues,
+            " issues " * "($(length(issues) - max_issues) issues ommitted)\n\n",
+        )
     end
     for issue in first(issues, max_issues)
         print(io, " * ")
