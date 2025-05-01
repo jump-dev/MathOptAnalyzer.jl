@@ -61,6 +61,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableNotInConstraints)
 struct VariableNotInConstraints <: AbstractNumericalIssue
     ref::MOI.VariableIndex
 end
+ModelAnalyzer.variable(issue::VariableNotInConstraints, model) = issue.ref
 
 """
     EmptyConstraint <: AbstractNumericalIssue
@@ -76,6 +77,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.EmptyConstraint)
 struct EmptyConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
+ModelAnalyzer.constraint(issue::EmptyConstraint, model) = issue.ref
 
 """
     VariableBoundAsConstraint <: AbstractNumericalIssue
@@ -92,6 +94,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableBoundAsConstraint
 struct VariableBoundAsConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
+ModelAnalyzer.constraint(issue::EmptyConstraint, model) = issue.ref
 
 """
     DenseConstraint <: AbstractNumericalIssue
@@ -109,6 +112,8 @@ struct DenseConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     nnz::Int
 end
+ModelAnalyzer.constraint(issue::DenseConstraint, model) = issue.ref
+ModelAnalyzer.value(issue::DenseConstraint) = issue.nnz
 
 """
     SmallMatrixCoefficient <: AbstractNumericalIssue
@@ -126,6 +131,9 @@ struct SmallMatrixCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::SmallMatrixCoefficient, model) = issue.variable
+ModelAnalyzer.constraint(issue::SmallMatrixCoefficient, model) = issue.ref
+ModelAnalyzer.value(issue::SmallMatrixCoefficient) = issue.coefficient
 
 """
     LargeMatrixCoefficient <: AbstractNumericalIssue
@@ -143,6 +151,9 @@ struct LargeMatrixCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::LargeMatrixCoefficient, model) = issue.variable
+ModelAnalyzer.constraint(issue::LargeMatrixCoefficient, model) = issue.ref
+ModelAnalyzer.value(issue::LargeMatrixCoefficient) = issue.coefficient
 
 """
     SmallBoundCoefficient <: AbstractNumericalIssue
@@ -159,6 +170,8 @@ struct SmallBoundCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::SmallBoundCoefficient, model) = issue.variable
+ModelAnalyzer.value(issue::SmallBoundCoefficient) = issue.coefficient
 
 """
     LargeBoundCoefficient <: AbstractNumericalIssue
@@ -175,6 +188,8 @@ struct LargeBoundCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::LargeBoundCoefficient, model) = issue.variable
+ModelAnalyzer.value(issue::LargeBoundCoefficient) = issue.coefficient
 
 """
     SmallRHSCoefficient <: AbstractNumericalIssue
@@ -191,6 +206,8 @@ struct SmallRHSCoefficient <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     coefficient::Float64
 end
+ModelAnalyzer.constraint(issue::SmallRHSCoefficient, model) = issue.ref
+ModelAnalyzer.value(issue::SmallRHSCoefficient) = issue.coefficient
 
 """
     LargeRHSCoefficient <: AbstractNumericalIssue
@@ -207,6 +224,8 @@ struct LargeRHSCoefficient <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     coefficient::Float64
 end
+ModelAnalyzer.constraint(issue::LargeRHSCoefficient, model) = issue.ref
+ModelAnalyzer.value(issue::LargeRHSCoefficient) = issue.coefficient
 
 """
     SmallObjectiveCoefficient <: AbstractNumericalIssue
@@ -223,6 +242,8 @@ struct SmallObjectiveCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::SmallObjectiveCoefficient, model) = issue.variable
+ModelAnalyzer.value(issue::SmallObjectiveCoefficient) = issue.coefficient
 
 """
     LargeObjectiveCoefficient <: AbstractNumericalIssue
@@ -239,6 +260,8 @@ struct LargeObjectiveCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
+ModelAnalyzer.variable(issue::LargeObjectiveCoefficient, model) = issue.variable
+ModelAnalyzer.value(issue::LargeObjectiveCoefficient) = issue.coefficient
 
 """
     SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
@@ -258,6 +281,15 @@ struct SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
+function ModelAnalyzer.variables(
+    issue::SmallObjectiveQuadraticCoefficient,
+    model,
+)
+    return [issue.variable1, issue.variable2]
+end
+function ModelAnalyzer.value(issue::SmallObjectiveQuadraticCoefficient)
+    return issue.coefficient
+end
 
 """
     LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
@@ -276,6 +308,15 @@ struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable1::MOI.VariableIndex
     variable2::MOI.VariableIndex
     coefficient::Float64
+end
+function ModelAnalyzer.variables(
+    issue::LargeObjectiveQuadraticCoefficient,
+    model,
+)
+    return [issue.variable1, issue.variable2]
+end
+function ModelAnalyzer.value(issue::LargeObjectiveQuadraticCoefficient)
+    return issue.coefficient
 end
 
 """
@@ -297,6 +338,13 @@ struct SmallMatrixQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
+function ModelAnalyzer.variables(issue::SmallMatrixQuadraticCoefficient, model)
+    return [issue.variable1, issue.variable2]
+end
+function ModelAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient, model)
+    return issue.ref
+end
+ModelAnalyzer.value(issue::SmallMatrixQuadraticCoefficient) = issue.coefficient
 
 """
     LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
@@ -317,6 +365,13 @@ struct LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
+function ModelAnalyzer.variables(issue::LargeMatrixQuadraticCoefficient, model)
+    return [issue.variable1, issue.variable2]
+end
+function ModelAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient, model)
+    return issue.ref
+end
+ModelAnalyzer.value(issue::LargeMatrixQuadraticCoefficient) = issue.coefficient
 
 """
     NonconvexQuadraticObjective <: AbstractNumericalIssue
@@ -349,6 +404,7 @@ julia> ModelAnalyzer.summarize(
 struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
+ModelAnalyzer.constraint(issue::NonconvexQuadraticConstraint, model) = issue.ref
 
 """
     Data
@@ -1768,77 +1824,153 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::VariableNotInConstraints)
-    return print(io, _name(issue.ref))
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::VariableNotInConstraints,
+    name_source,
+)
+    return print(io, ModelAnalyzer._name(issue.ref, name_source))
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::EmptyConstraint)
-    return print(io, _name(issue.ref))
+function ModelAnalyzer._summarize(io::IO, issue::EmptyConstraint, name_source)
+    return print(io, ModelAnalyzer._name(issue.ref, name_source))
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::VariableBoundAsConstraint)
-    return print(io, _name(issue.ref))
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::VariableBoundAsConstraint,
+    name_source,
+)
+    return print(io, ModelAnalyzer._name(issue.ref, name_source))
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::DenseConstraint)
-    return print(io, _name(issue.ref), " : ", issue.nnz)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::SmallMatrixCoefficient)
+function ModelAnalyzer._summarize(io::IO, issue::DenseConstraint, name_source)
     return print(
         io,
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
+        " : ",
+        issue.nnz,
+    )
+end
+
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::SmallMatrixCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " : ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::LargeMatrixCoefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::LargeMatrixCoefficient,
+    name_source,
+)
     return print(
         io,
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " : ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::SmallBoundCoefficient)
-    return print(io, _name(issue.variable), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::SmallBoundCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.variable, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::LargeBoundCoefficient)
-    return print(io, _name(issue.variable), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::LargeBoundCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.variable, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::SmallRHSCoefficient)
-    return print(io, _name(issue.ref), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::SmallRHSCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::LargeRHSCoefficient)
-    return print(io, _name(issue.ref), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::LargeRHSCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::SmallObjectiveCoefficient)
-    return print(io, _name(issue.variable), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::SmallObjectiveCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.variable, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::LargeObjectiveCoefficient)
-    return print(io, _name(issue.variable), " : ", issue.coefficient)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::LargeObjectiveCoefficient,
+    name_source,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.variable, name_source),
+        " : ",
+        issue.coefficient,
+    )
 end
 
 function ModelAnalyzer._summarize(
     io::IO,
     issue::SmallObjectiveQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         " : ",
         issue.coefficient,
     )
@@ -1847,12 +1979,13 @@ end
 function ModelAnalyzer._summarize(
     io::IO,
     issue::LargeObjectiveQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         " : ",
         issue.coefficient,
     )
@@ -1861,14 +1994,15 @@ end
 function ModelAnalyzer._summarize(
     io::IO,
     issue::SmallMatrixQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         " : ",
         issue.coefficient,
     )
@@ -1877,115 +2011,166 @@ end
 function ModelAnalyzer._summarize(
     io::IO,
     issue::LargeMatrixQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         " : ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, ::NonconvexQuadraticObjective)
+function ModelAnalyzer._summarize(
+    io::IO,
+    ::NonconvexQuadraticObjective,
+    name_source,
+)
     return print(io, "Objective is Nonconvex quadratic")
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::NonconvexQuadraticConstraint)
-    return print(io, _name(issue.ref))
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::NonconvexQuadraticConstraint,
+    name_source,
+)
+    return print(io, ModelAnalyzer._name(issue.ref, name_source))
 end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::VariableNotInConstraints,
+    name_source,
 )
-    return print(io, "Variable: ", _name(issue.ref))
+    return print(io, "Variable: ", ModelAnalyzer._name(issue.ref, name_source))
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::EmptyConstraint)
-    return print(io, "Constraint: ", _name(issue.ref))
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::EmptyConstraint,
+    name_source,
+)
+    return print(
+        io,
+        "Constraint: ",
+        ModelAnalyzer._name(issue.ref, name_source),
+    )
 end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::VariableBoundAsConstraint,
+    name_source,
 )
-    return print(io, "Constraint: ", _name(issue.ref))
-end
-
-function ModelAnalyzer._verbose_summarize(io::IO, issue::DenseConstraint)
     return print(
         io,
         "Constraint: ",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::DenseConstraint,
+    name_source,
+)
+    return print(
+        io,
+        "Constraint: ",
+        ModelAnalyzer._name(issue.ref, name_source),
         " with ",
         issue.nnz,
         " non zero coefficients",
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::SmallMatrixCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::SmallMatrixCoefficient,
+    name_source,
+)
     return print(
         io,
         "(Constraint -- Variable): (",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::LargeMatrixCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeMatrixCoefficient,
+    name_source,
+)
     return print(
         io,
         "(Constraint -- Variable): (",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::SmallBoundCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::SmallBoundCoefficient,
+    name_source,
+)
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " with bound ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::LargeBoundCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeBoundCoefficient,
+    name_source,
+)
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " with bound ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::SmallRHSCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::SmallRHSCoefficient,
+    name_source,
+)
     return print(
         io,
         "Constraint: ",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " with right-hand-side ",
         issue.coefficient,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::LargeRHSCoefficient)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeRHSCoefficient,
+    name_source,
+)
     return print(
         io,
         "Constraint: ",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " with right-hand-side ",
         issue.coefficient,
     )
@@ -1994,11 +2179,12 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::SmallObjectiveCoefficient,
+    name_source,
 )
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " with coefficient ",
         issue.coefficient,
     )
@@ -2007,11 +2193,12 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::LargeObjectiveCoefficient,
+    name_source,
 )
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, name_source),
         " with coefficient ",
         issue.coefficient,
     )
@@ -2020,13 +2207,14 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::SmallObjectiveQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
         "(Variable -- Variable): (",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
@@ -2035,13 +2223,14 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::LargeObjectiveQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
         "(Variable -- Variable): (",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
@@ -2050,15 +2239,16 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::SmallMatrixQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
         "(Constraint -- Variable -- Variable): (",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
@@ -2067,15 +2257,16 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::LargeMatrixQuadraticCoefficient,
+    name_source,
 )
     return print(
         io,
         "(Constraint -- Variable -- Variable): (",
-        _name(issue.ref),
+        ModelAnalyzer._name(issue.ref, name_source),
         " -- ",
-        _name(issue.variable1),
+        ModelAnalyzer._name(issue.variable1, name_source),
         " -- ",
-        _name(issue.variable2),
+        ModelAnalyzer._name(issue.variable2, name_source),
         ") with coefficient ",
         issue.coefficient,
     )
@@ -2084,6 +2275,7 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::NonconvexQuadraticObjective,
+    name_source,
 )
     return ModelAnalyzer._summarize(io, issue)
 end
@@ -2091,8 +2283,13 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::NonconvexQuadraticConstraint,
+    name_source,
 )
-    return print(io, "Constraint: ", _name(issue.ref))
+    return print(
+        io,
+        "Constraint: ",
+        ModelAnalyzer._name(issue.ref, name_source),
+    )
 end
 
 function ModelAnalyzer.list_of_issues(
@@ -2324,10 +2521,6 @@ function Base.show(io::IO, data::Data)
 end
 
 # printing helpers
-
-function _name(ref)
-    return "$(ref)"
-end
 
 _print_value(x::Real) = Printf.@sprintf("%1.0e", x)
 

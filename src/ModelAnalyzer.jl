@@ -25,7 +25,7 @@ See [`summarize`](@ref), [`list_of_issues`](@ref), and
 function analyze end
 
 """
-    summarize([io::IO,] AbstractData; verbose = true, max_issues = typemax(Int), kwargs...)
+    summarize([io::IO,] AbstractData; name_source = nothing, verbose = true, max_issues = typemax(Int), kwargs...)
 
 Print a summary of the analysis results contained in `AbstractData` to the
 specified IO stream. If no IO stream is provided, it defaults to `stdout`.
@@ -41,9 +41,11 @@ be a subtype of `AbstractIssue`). In the verbose case it will provide a text
 explaning the issue. In the non-verbose case it will provide just the issue
 name.
 
-    summarize([io::IO,] issue::AbstractIssue; verbose = true)
+    summarize([io::IO,] issue::AbstractIssue; name_source = nothing, verbose = true)
 
 This variant allows summarizing a single issue instance of type `AbstractIssue`.
+The model tha led to the issue can be provided to `name_source`, it will be used
+to generate the name of variables and constraints in the issue summary.
 """
 function summarize end
 
@@ -72,17 +74,23 @@ function summarize(io::IO, ::Type{T}; verbose = true) where {T<:AbstractIssue}
     end
 end
 
-function summarize(io::IO, issue::AbstractIssue; verbose = true)
+function summarize(
+    io::IO,
+    issue::AbstractIssue;
+    name_source = nothing,
+    verbose = true,
+)
     if verbose
-        return _verbose_summarize(io, issue)
+        return _verbose_summarize(io, issue, name_source)
     else
-        return _summarize(io, issue)
+        return _summarize(io, issue, name_source)
     end
 end
 
 function summarize(
     io::IO,
     issues::Vector{T};
+    name_source = nothing,
     verbose = true,
     max_issues = typemax(Int),
 ) where {T<:AbstractIssue}
@@ -92,7 +100,7 @@ function summarize(
     print(io, "\n\n## List of issues\n\n")
     for issue in first(issues, max_issues)
         print(io, " * ")
-        summarize(io, issue, verbose = verbose)
+        summarize(io, issue, verbose = verbose, name_source = name_source)
         print(io, "\n")
     end
     return
@@ -102,8 +110,78 @@ function summarize(data::AbstractData; kwargs...)
     return summarize(stdout, data; kwargs...)
 end
 
+"""
+    value(issue::AbstractIssue)
+
+Return the value associated to a particular issue. The value is a number
+with a different meaning depending on the type of issue. For example, for
+some numerical issues, it can be the coefficient value.
+"""
+function value(issue::AbstractIssue, ::Nothing)
+    return value(issue)
+end
+function value(issue::AbstractIssue, ::MOI.ModelLike)
+    return value(issue)
+end
+
+"""
+    variable(issue::AbstractIssue)
+
+Return the variable associated to a particular issue.
+"""
+function variable(issue::AbstractIssue, ::Nothing)
+    return variable(issue)
+end
+function variable(issue::AbstractIssue, ::MOI.ModelLike)
+    return variable(issue)
+end
+
+"""
+    variables(issue::AbstractIssue)
+
+Return the variables associated to a particular issue.
+"""
+function variables(issue::AbstractIssue, ::Nothing)
+    return variables(issue)
+end
+function variables(issue::AbstractIssue, ::MOI.ModelLike)
+    return variables(issue)
+end
+
+"""
+    constraint(issue::AbstractIssue)
+
+Return the constraint associated to a particular issue.
+"""
+function constraint(issue::AbstractIssue, ::Nothing)
+    return constraint(issue)
+end
+function constraint(issue::AbstractIssue, ::MOI.ModelLike)
+    return constraint(issue)
+end
+
 function _verbose_summarize end
 function _summarize end
+
+function _name(ref::MOI.VariableIndex, model::MOI.ModelLike)
+    name = MOI.get(model, MOI.VariableName(), ref)
+    if !isempty(name)
+        return name
+    end
+    return "$ref"
+end
+
+function _name(ref::MOI.ConstraintIndex, model::MOI.ModelLike)
+    name = MOI.get(model, MOI.ConstraintName(), ref)
+    if !isempty(name)
+        return name
+    end
+    return "$ref"
+end
+
+function _name(ref, ::Nothing)
+    return "$ref"
+end
 
 include("numerical.jl")
 include("feasibility.jl")
