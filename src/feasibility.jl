@@ -85,7 +85,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualViolation)
 ```
 """
 struct DualViolation <: AbstractFeasibilityIssue
-    ref::Union{JuMP.ConstraintRef,JuMP.VariableRef}
+    ref::Union{JuMP.ConstraintRef,JuMP.GenericVariableRef}
     violation::Float64
 end
 
@@ -651,7 +651,7 @@ function _name(ref::JuMP.ConstraintRef)
     return JuMP.name(ref)
 end
 
-function _name(ref::JuMP.VariableRef)
+function _name(ref::JuMP.GenericVariableRef)
     return JuMP.name(ref)
 end
 
@@ -1062,12 +1062,12 @@ function _dual_point_to_dual_model_ref(
         if haskey(primal_con_dual_var, moi_con)
             vec_vars = primal_con_dual_var[moi_con]
             for (i, moi_var) in enumerate(vec_vars)
-                jump_var = JuMP.VariableRef(dual_model, moi_var)
+                jump_var = JuMP.GenericVariableRef{T}(dual_model, moi_var)
                 dual_point[jump_var] = val[i]
             end
         elseif haskey(primal_con_dual_convar, moi_con)
             moi_convar = primal_con_dual_convar[moi_con]
-            jump_var = JuMP.VariableRef(
+            jump_var = JuMP.GenericVariableRef{T}(
                 dual_model,
                 MOI.VariableIndex(moi_convar.value),
             )
@@ -1105,7 +1105,10 @@ function _fix_ret(
     primal_model::JuMP.GenericModel{T},
     dual_con_primal_all,
 ) where {T}
-    ret = Dict{Union{JuMP.ConstraintRef,JuMP.VariableRef},Union{T,Vector{T}}}()
+    ret = Dict{
+        Union{JuMP.ConstraintRef,JuMP.GenericVariableRef{T}},
+        Union{T,Vector{T}},
+    }()
     for (jump_dual_con, val) in pre_ret
         # v is a variable in the dual jump model
         # we need the associated cosntraint in the primal jump model
@@ -1115,7 +1118,7 @@ function _fix_ret(
             # variable in the dual model
             # constraint in the primal model
             jump_primal_var =
-                JuMP.VariableRef(primal_model, moi_primal_something)
+                JuMP.GenericVariableRef{T}(primal_model, moi_primal_something)
             # ret[jump_primal_var] = T[val]
             ret[jump_primal_var] = val
         else
@@ -1144,7 +1147,7 @@ function _dualize2(
     if mode == JuMP.MANUAL
         error("Dualization does not support solvers in $(mode) mode")
     end
-    dual_model = JuMP.Model()
+    dual_model = JuMP.GenericModel()
     dual_problem = Dualization.DualProblem(JuMP.backend(dual_model))
     Dualization.dualize(JuMP.backend(model), dual_problem; kwargs...)
     Dualization._fill_obj_dict_with_variables!(dual_model)

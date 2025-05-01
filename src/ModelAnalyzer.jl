@@ -14,7 +14,7 @@ abstract type AbstractData end
 abstract type AbstractAnalyzer end
 
 """
-    analyze(analyzer::AbstractAnalyzer, model::JuMP.Model; kwargs...)
+    analyze(analyzer::AbstractAnalyzer, model::JuMP.GenericModel; kwargs...)
 
 Analyze a JuMP model using the specified analyzer.
 Depending on the analyzer, this keyword arguments might vary.
@@ -122,6 +122,7 @@ some numerical issues, it can be the coefficient value.
 function value(issue::AbstractIssue, ::Nothing)
     return value(issue)
 end
+
 function value(issue::AbstractIssue, ::MOI.ModelLike)
     return value(issue)
 end
@@ -134,6 +135,7 @@ Return the variable associated to a particular issue.
 function variable(issue::AbstractIssue, ::Nothing)
     return variable(issue)
 end
+
 function variable(issue::AbstractIssue, ::MOI.ModelLike)
     return variable(issue)
 end
@@ -146,6 +148,7 @@ Return the variables associated to a particular issue.
 function variables(issue::AbstractIssue, ::Nothing)
     return variables(issue)
 end
+
 function variables(issue::AbstractIssue, ::MOI.ModelLike)
     return variables(issue)
 end
@@ -158,11 +161,13 @@ Return the constraint associated to a particular issue.
 function constraint(issue::AbstractIssue, ::Nothing)
     return constraint(issue)
 end
+
 function constraint(issue::AbstractIssue, ::MOI.ModelLike)
     return constraint(issue)
 end
 
 function _verbose_summarize end
+
 function _summarize end
 
 function _name(ref::MOI.VariableIndex, model::MOI.ModelLike)

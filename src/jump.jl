@@ -1,18 +1,13 @@
+# Copyright (c) 2025: Joaquim Garcia, Oscar Dowson and contributors
+#
+# Use of this source code is governed by an MIT-style license that can be found
+# in the LICENSE.md file or at https://opensource.org/licenses/MIT.
+
 import JuMP
-
-# struct JuMPData{T<:AbstractData} <: ModelAnalyzer.AbstractData
-#     data::T
-#     model::JuMP.Model
-# end
-
-# struct JuMPIssue{T<:AbstractIssue} <: ModelAnalyzer.AbstractIssue
-#     issue::T
-#     model::JuMP.Model
-# end
 
 function ModelAnalyzer.analyze(
     analyzer::T,
-    model::JuMP.Model;
+    model::JuMP.GenericModel;
     kwargs...,
 ) where {T<:ModelAnalyzer.AbstractAnalyzer}
     moi_model = JuMP.backend(model)
@@ -21,8 +16,11 @@ function ModelAnalyzer.analyze(
     return result
 end
 
-function ModelAnalyzer._name(ref::MOI.VariableIndex, model::JuMP.Model)
-    jump_ref = JuMP.VariableRef(model, ref)
+function ModelAnalyzer._name(
+    ref::MOI.VariableIndex,
+    model::JuMP.GenericModel{T},
+) where {T}
+    jump_ref = JuMP.GenericVariableRef{T}(model, ref)
     name = JuMP.name(jump_ref)
     if !isempty(name)
         return name
@@ -30,7 +28,7 @@ function ModelAnalyzer._name(ref::MOI.VariableIndex, model::JuMP.Model)
     return "$jump_ref"
 end
 
-function ModelAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.Model)
+function ModelAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
     jump_ref = JuMP.constraint_ref_with_index(model, ref)
     name = JuMP.name(jump_ref)
     if !isempty(name)
@@ -40,39 +38,39 @@ function ModelAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.Model)
 end
 
 """
-    variable(issue::ModelAnalyzer.AbstractIssue, model::JuMP.Model)
+    variable(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** variable reference associated to a particular issue.
 """
 function ModelAnalyzer.variable(
     issue::ModelAnalyzer.AbstractIssue,
-    model::JuMP.Model,
-)
+    model::JuMP.GenericModel{T},
+) where {T}
     ref = ModelAnalyzer.variable(issue)
-    return JuMP.VariableRef(model, ref)
+    return JuMP.GenericVariableRef{T}(model, ref)
 end
 
 """
-    variables(issue::ModelAnalyzer.AbstractIssue, model::JuMP.Model)
+    variables(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** variable references associated to a particular issue.
 """
 function ModelAnalyzer.variables(
     issue::ModelAnalyzer.AbstractIssue,
-    model::JuMP.Model,
-)
+    model::JuMP.GenericModel{T},
+) where {T}
     refs = ModelAnalyzer.variables(issue)
-    return JuMP.VariableRef.(model, refs)
+    return JuMP.GenericVariableRef{T}.(model, refs)
 end
 
 """
-    constraint(issue::ModelAnalyzer.AbstractIssue, model::JuMP.Model)
+    constraint(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** constraint reference associated to a particular issue.
 """
 function ModelAnalyzer.constraint(
     issue::ModelAnalyzer.AbstractIssue,
-    model::JuMP.Model,
+    model::JuMP.GenericModel,
 )
     ref = ModelAnalyzer.constraint(issue)
     return JuMP.constraint_ref_with_index(model, ref)

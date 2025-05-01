@@ -50,7 +50,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Infeasibility.InfeasibleBounds)
 ````
 """
 struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
-    variable::JuMP.VariableRef
+    variable::JuMP.GenericVariableRef{T}
     lb::T
     ub::T
 end
@@ -71,7 +71,7 @@ julia> ModelAnalyzer.summarize(
 ```
 """
 struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
-    variable::JuMP.VariableRef
+    variable::JuMP.GenericVariableRef{T}
     lb::T
     ub::T
     set::Union{MOI.Integer,MOI.ZeroOne}#, MOI.Semicontinuous{T}, MOI.Semiinteger{T}}
@@ -147,7 +147,7 @@ function ModelAnalyzer.analyze(
 ) where {T}
     out = Data()
 
-    variables = Dict{JuMP.VariableRef,Interval{T}}()
+    variables = Dict{JuMP.GenericVariableRef{T},Interval{T}}()
 
     # first layer of infeasibility analysis is bounds consistency
     bounds_consistent = true
@@ -196,7 +196,7 @@ function ModelAnalyzer.analyze(
     # second layer of infeasibility analysis is constraint range analysis
     range_consistent = true
     for (F, S) in JuMP.list_of_constraint_types(model)
-        F != JuMP.GenericAffExpr{T,JuMP.VariableRef} && continue
+        F != JuMP.GenericAffExpr{T,JuMP.GenericVariableRef{T}} && continue
         # TODO: handle quadratics
         !(S in (MOI.EqualTo{T}, MOI.LessThan{T}, MOI.GreaterThan{T})) &&
             continue
