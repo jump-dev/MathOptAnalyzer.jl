@@ -154,19 +154,17 @@ function ModelAnalyzer.analyze(
     for var in JuMP.all_variables(model)
         lb = if JuMP.has_lower_bound(var)
             JuMP.lower_bound(var)
+        elseif JuMP.is_fixed(var)
+            JuMP.fix_value(var)
         else
             -Inf
         end
         ub = if JuMP.has_upper_bound(var)
             JuMP.upper_bound(var)
+        elseif JuMP.is_fixed(var)
+            JuMP.fix_value(var)
         else
             Inf
-        end
-        if lb > ub
-            push!(out.infeasible_bounds, InfeasibleBounds(var, lb, ub))
-            bounds_consistent = false
-        else
-            variables[var] = Interval(lb, ub)
         end
         if JuMP.is_integer(var)
             if abs(ub - lb) < 1 && ceil(ub) == ceil(lb)
@@ -185,6 +183,12 @@ function ModelAnalyzer.analyze(
                 )
                 bounds_consistent = false
             end
+        end
+        if lb > ub
+            push!(out.infeasible_bounds, InfeasibleBounds(var, lb, ub))
+            bounds_consistent = false
+        else
+            variables[var] = Interval(lb, ub)
         end
     end
     # check PSD diagonal >= 0 ?
@@ -371,10 +375,6 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
         end
     end
 
-    # TODO: add deletion filter
-    # otherwise this is not an IIS (it does contain an IIS)
-
-    # pre_iis = Set(val[1] for val in de_elastisized)
     pre_iis = Set(cadidates)
     iis = JuMP.ConstraintRef[]
     for con in JuMP.all_constraints(
@@ -677,7 +677,7 @@ function ModelAnalyzer.summarize(
     io::IO,
     data::Data;
     verbose = true,
-    max_issues = typemax(Int),
+    max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
 )
     print(io, "## Infeasibility Analysis\n\n")
 

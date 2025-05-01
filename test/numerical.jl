@@ -993,6 +993,34 @@ function test_qp_range()
     ModelAnalyzer.summarize(buf, data)
     ModelAnalyzer.summarize(buf, data, verbose = false)
 
+    open("my_report.txt", "w") do io
+        return ModelAnalyzer.summarize(io, data)
+    end
+
+    file_data = read("my_report.txt", String)
+    @test occursin("## Numerical Analysis", file_data)
+
+    return
+end
+
+function test_more_than_max_issues()
+    model = Model()
+    @variable(model, xg[1:20] <= 2e9)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) >= 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+    )
+    @test length(ret) == 20
+
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, data)
+    str = String(take!(buf))
+    @test occursin("Showing first ", str)
+    @test occursin(" issues ommitted)\n\n", str)
+
     return
 end
 
