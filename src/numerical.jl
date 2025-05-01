@@ -701,12 +701,20 @@ function _get_constraint_matrix_data(
     return
 end
 
-function _get_constraint_matrix_data(data, ref::MOI.ConstraintIndex, func::MOI.VariableIndex)
+function _get_constraint_matrix_data(
+    data,
+    ref::MOI.ConstraintIndex,
+    func::MOI.VariableIndex,
+)
     # push!(data.variables_in_constraints, func)
     return
 end
 
-function _get_constraint_matrix_data(data, ref::MOI.ConstraintIndex, func::MOI.VectorOfVariables)
+function _get_constraint_matrix_data(
+    data,
+    ref::MOI.ConstraintIndex,
+    func::MOI.VectorOfVariables,
+)
     if length(func.variables) == 1
         return
     end
