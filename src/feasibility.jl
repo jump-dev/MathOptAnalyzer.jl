@@ -685,7 +685,7 @@ function ModelAnalyzer.summarize(
     io::IO,
     data::Data;
     verbose = true,
-    max_issues = typemax(Int),
+    max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
     configurations = true,
 )
     print(io, "## Feasibility Analysis\n\n")

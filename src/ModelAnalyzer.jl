@@ -80,11 +80,13 @@ function summarize(io::IO, issue::AbstractIssue; verbose = true)
     end
 end
 
+const DEFAULT_MAX_ISSUES = 10
+
 function summarize(
     io::IO,
     issues::Vector{T};
     verbose = true,
-    max_issues = 10,
+    max_issues = DEFAULT_MAX_ISSUES,
 ) where {T<:AbstractIssue}
     summarize(io, T, verbose = verbose)
     print(io, "\n## Number of issues\n\n")
@@ -95,7 +97,7 @@ function summarize(
             io,
             "Showing first ",
             max_issues,
-            " issues " * "($(length(issues) - max_issues) issues ommitted)\n\n",
+            " issues ($(length(issues) - max_issues) issues ommitted)\n\n",
         )
     end
     for issue in first(issues, max_issues)
