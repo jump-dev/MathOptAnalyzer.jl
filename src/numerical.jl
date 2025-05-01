@@ -94,7 +94,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableBoundAsConstraint
 struct VariableBoundAsConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
-ModelAnalyzer.constraint(issue::EmptyConstraint, model) = issue.ref
+ModelAnalyzer.constraint(issue::VariableBoundAsConstraint, model) = issue.ref
 
 """
     DenseConstraint <: AbstractNumericalIssue
@@ -2277,7 +2277,7 @@ function ModelAnalyzer._verbose_summarize(
     issue::NonconvexQuadraticObjective,
     name_source,
 )
-    return ModelAnalyzer._summarize(io, issue)
+    return ModelAnalyzer._summarize(io, issue, name_source)
 end
 
 function ModelAnalyzer._verbose_summarize(

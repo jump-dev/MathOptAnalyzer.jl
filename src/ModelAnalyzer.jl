@@ -5,6 +5,8 @@
 
 module ModelAnalyzer
 
+import MathOptInterface as MOI
+
 abstract type AbstractIssue end
 
 abstract type AbstractData end

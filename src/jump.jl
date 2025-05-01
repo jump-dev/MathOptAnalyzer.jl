@@ -1,4 +1,4 @@
-using JuMP
+import JuMP
 
 # struct JuMPData{T<:AbstractData} <: ModelAnalyzer.AbstractData
 #     data::T
