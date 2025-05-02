@@ -39,7 +39,7 @@ run:
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/jump-dev/ModelAnalyzer.jl")
+Pkg.add(url = "https://github.com/jump-dev/ModelAnalyzer.jl")
 ```
 
 ## Usage
