@@ -941,7 +941,13 @@ function test_many()
     ModelAnalyzer.summarize(buf, data, verbose = false)
 
     redirect_stdout(devnull) do
-        return ModelAnalyzer.summarize(data)
+        ModelAnalyzer.summarize(data)
+        list = ModelAnalyzer.list_of_issue_types(data)
+        ModelAnalyzer.summarize(list[1])
+        issues = ModelAnalyzer.list_of_issues(data, list[1])
+        ModelAnalyzer.summarize(issues)
+        ModelAnalyzer.summarize(issues[1])
+        return
     end
 
     return
