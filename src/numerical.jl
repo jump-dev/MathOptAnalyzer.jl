@@ -2426,6 +2426,7 @@ end
 function ModelAnalyzer.summarize(
     io::IO,
     data::Data;
+    model = nothing,
     verbose = true,
     max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
     configurations = true,
@@ -2451,6 +2452,7 @@ function ModelAnalyzer.summarize(
         ModelAnalyzer.summarize(
             io,
             issues,
+            model = model,
             verbose = verbose,
             max_issues = max_issues,
         )

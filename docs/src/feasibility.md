@@ -17,7 +17,8 @@ Specifically, the possible issues are:
 
 ```@docs
 ModelAnalyzer.Feasibility.PrimalViolation
-ModelAnalyzer.Feasibility.DualViolation
+ModelAnalyzer.Feasibility.DualConstraintViolation
+ModelAnalyzer.Feasibility.DualConstrainedVariableViolation
 ModelAnalyzer.Feasibility.ComplemetarityViolation
 ModelAnalyzer.Feasibility.DualObjectiveMismatch
 ModelAnalyzer.Feasibility.PrimalObjectiveMismatch

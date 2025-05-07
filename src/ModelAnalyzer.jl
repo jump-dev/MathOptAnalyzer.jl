@@ -31,6 +31,8 @@ function analyze end
 
 Print a summary of the analysis results contained in `AbstractData` to the
 specified IO stream. If no IO stream is provided, it defaults to `stdout`.
+The model that led to the issue can be provided to `model`, it will be
+used to generate the name of variables and constraints in the issue summary.
 The `verbose` flag controls whether to print detailed information about each
 issue (if `true`) or a concise summary (if `false`). The `max_issues` argument
 controls the maximum number of issues to display in the summary. If there are
@@ -202,7 +204,6 @@ end
 
 include("numerical.jl")
 include("feasibility.jl")
-include("infeasibility.jl")
+# include("infeasibility.jl")
 
-include("jump.jl")
-end
+end # module ModelAnalyzer

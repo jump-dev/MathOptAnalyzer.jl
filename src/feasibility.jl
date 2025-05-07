@@ -3,24 +3,17 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-# TODO
-# 1 - JuMP: primal_feasibility_report should have a typed error for not found stuff so we can capture
-# 2 - Dualization: should consider and option to dont treat @variable(m, x >= 0) differently from @variable(m, x >= 1)
-# 3 - Dualization: JuMP model dualization should hold the primal dual map, maybe a JuMP converted version
-# 4 - Dualization: Primal dual map could work with a getindex for simpler usage
-
 module Feasibility
 
 import ModelAnalyzer
 import Dualization
-import JuMP
-import JuMP.MOI as MOI
+import MathOptInterface as MOI
 import Printf
 
 """
     Analyzer() <: ModelAnalyzer.AbstractAnalyzer
 
-The `Analyzer` type is used to perform feasibility analysis on a JuMP model.
+The `Analyzer` type is used to perform feasibility analysis on a model.
 
 ## Example
 
@@ -53,7 +46,7 @@ struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 """
     AbstractFeasibilityIssue <: AbstractNumericalIssue
 
-Abstract type for feasibility issues found during the analysis of a JuMP model.
+Abstract type for feasibility issues found during the analysis of a model.
 """
 abstract type AbstractFeasibilityIssue <: ModelAnalyzer.AbstractIssue end
 
@@ -69,23 +62,42 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalViolation)
 ```
 """
 struct PrimalViolation <: AbstractFeasibilityIssue
-    ref::JuMP.ConstraintRef
+    ref::MOI.ConstraintIndex
     violation::Float64
 end
 
 """
-    DualViolation <: AbstractFeasibilityIssue
+    DualConstraintViolation <: AbstractFeasibilityIssue
 
-The `DualViolation` issue is identified when a constraint has a dual value
-that is not within the dual constraint's set.
+The `DualConstraintViolation` issue is identified when a dual constraint has a
+value that is not within the dual constraint's set.
+This dual constraint corresponds to a primal variable.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualViolation)
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualConstraintViolation)
 ```
 """
-struct DualViolation <: AbstractFeasibilityIssue
-    ref::Union{JuMP.ConstraintRef,JuMP.GenericVariableRef}
+struct DualConstraintViolation <: AbstractFeasibilityIssue
+    ref::MOI.VariableIndex
+    violation::Float64
+end
+
+"""
+    DualConstrainedVariableViolation <: AbstractFeasibilityIssue
+
+The `DualConstrainedVariableViolation` issue is identified when a dual 
+constraint, which is a constrained varaible constraint, has a value
+that is not within the dual constraint's set.
+This dual constraint corresponds to a primal constraint.
+
+For more information, run:
+```julia
+julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualConstrainedVariableViolation)
+```
+"""
+struct DualConstrainedVariableViolation <: AbstractFeasibilityIssue
+    ref::MOI.ConstraintIndex
     violation::Float64
 end
 
@@ -103,7 +115,7 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.ComplemetarityViolation
 ```
 """
 struct ComplemetarityViolation <: AbstractFeasibilityIssue
-    ref::JuMP.ConstraintRef
+    ref::MOI.ConstraintIndex
     violation::Float64
 end
 
@@ -179,7 +191,7 @@ end
     Data
 
 The `Data` structure holds the results of the feasibility analysis performed
-by the `ModelAnalyzer.analyze` function for a JuMP model. It contains
+by the `ModelAnalyzer.analyze` function for a model. It contains
 the configuration used for the analysis, the primal and dual points, and
 the lists of various feasibility issues found during the analysis.
 """
@@ -192,7 +204,9 @@ Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
     dual_check::Bool
     # analysis results
     primal::Vector{PrimalViolation} = PrimalViolation[]
-    dual::Vector{DualViolation} = DualViolation[]
+    dual::Vector{DualConstraintViolation} = DualConstraintViolation[]
+    dual_convar::Vector{DualConstrainedVariableViolation} =
+        DualConstrainedVariableViolation[]
     complementarity::Vector{ComplemetarityViolation} = ComplemetarityViolation[]
     # objective analysis
     dual_objective_mismatch::Vector{DualObjectiveMismatch} =
@@ -208,8 +222,15 @@ function ModelAnalyzer._summarize(io::IO, ::Type{PrimalViolation})
     return print(io, "# PrimalViolation")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{DualViolation})
-    return print(io, "# DualViolation")
+function ModelAnalyzer._summarize(io::IO, ::Type{DualConstraintViolation})
+    return print(io, "# DualConstraintViolation")
+end
+
+function ModelAnalyzer._summarize(
+    io::IO,
+    ::Type{DualConstrainedVariableViolation},
+)
+    return print(io, "# DualConstrainedVariableViolation")
 end
 
 function ModelAnalyzer._summarize(io::IO, ::Type{ComplemetarityViolation})
@@ -271,16 +292,61 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, ::Type{DualViolation})
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{DualConstraintViolation},
+)
     return print(
         io,
         """
-        # DualViolation
+        # DualConstraintViolation
 
         ## What
 
-        A `DualViolation` issue is identified when a constraint has
+        A `DualConstraintViolation` issue is identified when a constraint has
         a dual value that is not within the dual constraint's set.
+
+        ## Why
+
+        This can happen due to a few reasons:
+        - The solver did not converge.
+        - The model is infeasible and the solver converged to an
+          infeasible point.
+        - The solver converged to a low accuracy solution, which might
+          happen due to transformations in the the model presolve or
+          due to numerical issues.
+
+        ## How to fix
+
+        Check the solver convergence log and the solver status. If the
+        solver did not converge, you might want to try alternative
+        solvers or adjust the solver options. If the solver converged
+        to an infeasible point, you might want to check the model
+        constraints and bounds. If the solver converged to a low
+        accuracy solution, you might want to adjust the solver options
+        or the model presolve.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{DualConstrainedVariableViolation},
+)
+    return print(
+        io,
+        """
+        # DualConstrainedVariableViolation
+
+        ## What
+
+        A `DualConstrainedVariableViolation` issue is identified when a dual
+        constraint, which is a constrained varaible constraint, has a value
+        that is not within the dual constraint's set.
 
         ## Why
 
@@ -489,78 +555,123 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::PrimalViolation)
-    return print(io, _name(issue.ref), " : ", issue.violation)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::DualViolation)
-    return print(io, _name(issue.ref), " : ", issue.violation)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::ComplemetarityViolation)
-    return print(io, _name(issue.ref), " : ", issue.violation)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::DualObjectiveMismatch)
-    return ModelAnalyzer._verbose_summarize(io, issue)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::PrimalObjectiveMismatch)
-    return ModelAnalyzer._verbose_summarize(io, issue)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::PrimalDualMismatch)
-    return ModelAnalyzer._verbose_summarize(io, issue)
-end
-
-function ModelAnalyzer._summarize(io::IO, issue::PrimalDualSolverMismatch)
-    return ModelAnalyzer._verbose_summarize(io, issue)
-end
-
-function ModelAnalyzer._verbose_summarize(io::IO, issue::PrimalViolation)
+function ModelAnalyzer._summarize(io::IO, issue::PrimalViolation, model)
     return print(
         io,
-        "Constraint ",
-        _name(issue.ref),
-        " has violation ",
+        ModelAnalyzer._name(issue.ref, model),
+        " : ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::DualViolation)
-    if issue.ref isa JuMP.ConstraintRef
-        return print(
-            io,
-            "Constraint ",
-            _name(issue.ref),
-            " has violation ",
-            issue.violation,
-        )
-    else
-        return print(
-            io,
-            "Variable ",
-            _name(issue.ref),
-            " has violation ",
-            issue.violation,
-        )
-    end
+function ModelAnalyzer._summarize(io::IO, issue::DualConstraintViolation, model)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, model),
+        " : ",
+        issue.violation,
+    )
+end
+
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::DualConstrainedVariableViolation,
+    model,
+)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, model),
+        " : ",
+        issue.violation,
+    )
+end
+
+function ModelAnalyzer._summarize(io::IO, issue::ComplemetarityViolation, model)
+    return print(
+        io,
+        ModelAnalyzer._name(issue.ref, model),
+        " : ",
+        issue.violation,
+    )
+end
+
+function ModelAnalyzer._summarize(io::IO, issue::DualObjectiveMismatch, model)
+    return ModelAnalyzer._verbose_summarize(io, issue, model)
+end
+
+function ModelAnalyzer._summarize(io::IO, issue::PrimalObjectiveMismatch, model)
+    return ModelAnalyzer._verbose_summarize(io, issue, model)
+end
+
+function ModelAnalyzer._summarize(io::IO, issue::PrimalDualMismatch, model)
+    return ModelAnalyzer._verbose_summarize(io, issue, model)
+end
+
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::PrimalDualSolverMismatch,
+    model,
+)
+    return ModelAnalyzer._verbose_summarize(io, issue, model)
+end
+
+function ModelAnalyzer._verbose_summarize(io::IO, issue::PrimalViolation, model)
+    return print(
+        io,
+        "Constraint ",
+        ModelAnalyzer._name(issue.ref, model),
+        " has primal violation ",
+        issue.violation,
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::DualConstraintViolation,
+    model,
+)
+    return print(
+        io,
+        "Variables ",
+        ModelAnalyzer._name.(issue.ref, model),
+        " have dual violation ",
+        issue.violation,
+    )
+end
+
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::DualConstrainedVariableViolation,
+    model,
+)
+    return print(
+        io,
+        "Constraint ",
+        ModelAnalyzer._name(issue.ref, model),
+        " has dual violation ",
+        issue.violation,
+    )
 end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::ComplemetarityViolation,
+    model,
 )
     return print(
         io,
         "Constraint ",
-        _name(issue.ref),
-        " has violation ",
+        ModelAnalyzer._name(issue.ref, model),
+        " has complementarty violation ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::DualObjectiveMismatch)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::DualObjectiveMismatch,
+    model,
+)
     return print(
         io,
         "Dual objective mismatch: ",
@@ -574,6 +685,7 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::PrimalObjectiveMismatch,
+    model,
 )
     return print(
         io,
@@ -585,7 +697,11 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::PrimalDualMismatch)
+function ModelAnalyzer._verbose_summarize(
+    io::IO,
+    issue::PrimalDualMismatch,
+    model,
+)
     return print(
         io,
         "Primal dual mismatch: ",
@@ -599,6 +715,7 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::PrimalDualSolverMismatch,
+    model,
 )
     return print(
         io,
@@ -614,8 +731,18 @@ function ModelAnalyzer.list_of_issues(data::Data, ::Type{PrimalViolation})
     return data.primal
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{DualViolation})
+function ModelAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{DualConstraintViolation},
+)
     return data.dual
+end
+
+function ModelAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{DualConstrainedVariableViolation},
+)
+    return data.dual_convar
 end
 
 function ModelAnalyzer.list_of_issues(
@@ -647,19 +774,12 @@ function ModelAnalyzer.list_of_issues(
     return data.primal_dual_solver_mismatch
 end
 
-function _name(ref::JuMP.ConstraintRef)
-    return JuMP.name(ref)
-end
-
-function _name(ref::JuMP.GenericVariableRef)
-    return JuMP.name(ref)
-end
-
 function ModelAnalyzer.list_of_issue_types(data::Data)
     ret = Type[]
     for type in (
         PrimalViolation,
-        DualViolation,
+        DualConstraintViolation,
+        DualConstrainedVariableViolation,
         ComplemetarityViolation,
         DualObjectiveMismatch,
         PrimalObjectiveMismatch,
@@ -684,6 +804,7 @@ end
 function ModelAnalyzer.summarize(
     io::IO,
     data::Data;
+    model = nothing,
     verbose = true,
     max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
     configurations = true,
@@ -701,6 +822,7 @@ function ModelAnalyzer.summarize(
         ModelAnalyzer.summarize(
             io,
             issues,
+            model = model,
             verbose = verbose,
             max_issues = max_issues,
         )
@@ -719,13 +841,24 @@ end
 
 function ModelAnalyzer.analyze(
     ::Analyzer,
-    model::JuMP.GenericModel;
+    model::MOI.ModelLike;
     primal_point = nothing,
     dual_point = nothing,
     atol::Float64 = 1e-6,
     skip_missing::Bool = false,
     dual_check = true,
 )
+    can_dualize = false
+    if dual_check
+        can_dualize = _can_dualize(model)
+        if !can_dualize
+            println(
+                "The model cannot be dualized. Automatically setting `dual_check = false`.",
+            )
+            dual_check = false
+        end
+    end
+
     data = Data(
         primal_point = primal_point,
         dual_point = dual_point,
@@ -735,10 +868,8 @@ function ModelAnalyzer.analyze(
     )
 
     if data.primal_point === nothing
-        if !(
-            JuMP.primal_status(model) in
-            (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
-        )
+        primal_status = MOI.get(model, MOI.PrimalStatus())
+        if !(primal_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT))
             error(
                 "No primal solution is available. You must provide a point at " *
                 "which to check feasibility.",
@@ -747,12 +878,9 @@ function ModelAnalyzer.analyze(
         data.primal_point = _last_primal_solution(model)
     end
 
-    can_dualize = _can_dualize(model)
-    if data.dual_point === nothing && can_dualize && dual_check
-        if !(
-            JuMP.dual_status(model) in
-            (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
-        )
+    if data.dual_point === nothing && dual_check
+        dual_status = MOI.get(model, MOI.DualStatus())
+        if !(dual_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT))
             error(
                 "No dual solution is available. You must provide a point at " *
                 "which to check feasibility. Or set dual_check = false.",
@@ -761,20 +889,18 @@ function ModelAnalyzer.analyze(
         data.dual_point = _last_dual_solution(model)
     end
 
-    _dual_model = if can_dualize && dual_check
-        _dualize2(model)
-    else
-        nothing
-    end
-
     _analyze_primal!(model, data)
-    if can_dualize && dual_check
-        _analyze_dual!(model, _dual_model, data)
-    end
-    if data.dual_point !== nothing
+    _dual_model = nothing
+    _map = nothing
+    if dual_check
+        dual_problem =
+            Dualization.dualize(model, consider_constrained_variables = false)
+        _dual_model = dual_problem.dual_model
+        _map = dual_problem.primal_dual_map
+        _analyze_dual!(model, _dual_model, _map, data)
         _analyze_complementarity!(model, data)
     end
-    _analyze_objectives!(model, _dual_model, data)
+    _analyze_objectives!(model, _dual_model, _map, data)
     sort!(data.primal, by = x -> abs(x.violation))
     sort!(data.dual, by = x -> abs(x.violation))
     sort!(data.complementarity, by = x -> abs(x.violation))
@@ -782,44 +908,203 @@ function ModelAnalyzer.analyze(
 end
 
 function _analyze_primal!(model, data)
-    dict = JuMP.primal_feasibility_report(
-        model,
-        data.primal_point;
-        atol = data.atol,
-        skip_missing = data.skip_missing,
-    )
-    for (ref, violation) in dict
-        push!(data.primal, PrimalViolation(ref, violation))
+    types = MOI.get(model, MOI.ListOfConstraintTypesPresent())
+    for (F, S) in types
+        list = MOI.get(model, MOI.ListOfConstraintIndices{F,S}())
+        for con in list
+            func = MOI.get(model, MOI.ConstraintFunction(), con)
+            failed = false
+            val = MOI.Utilities.eval_variables(model, func) do var_idx
+                if !haskey(data.primal_point, var_idx)
+                    if data.skip_missing
+                        failed = true
+                        return NaN # nothing
+                    else
+                        error(
+                            "Missing variable in primal point: $var_idx. " *
+                            "Set skip_missing = true to ignore this error.",
+                        )
+                    end
+                end
+                return data.primal_point[var_idx]
+            end
+            if failed
+                continue
+            end
+            set = MOI.get(model, MOI.ConstraintSet(), con)
+            dist = MOI.Utilities.distance_to_set(val, set)
+            if dist > data.atol
+                push!(data.primal, PrimalViolation(con, dist))
+            end
+        end
     end
     return
 end
 
-function _analyze_dual!(model, _dual_model, data)
-    dict = dual_feasibility_report(
-        model,
-        data.dual_point;
-        atol = data.atol,
-        skip_missing = data.skip_missing,
-        _dual_model = _dual_model,
-    )
-    for (ref, violation) in dict
-        push!(data.dual, DualViolation(ref, violation))
+function _dual_point_to_dual_model_ref(
+    primal_model,
+    map::Dualization.PrimalDualMap,
+    dual_point,
+)
+    new_dual_point = Dict{MOI.VariableIndex,Number}()
+    dual_var_to_primal_con = Dict{MOI.VariableIndex,MOI.ConstraintIndex}()
+    dual_con_to_primal_con = Dict{MOI.ConstraintIndex,MOI.ConstraintIndex}()
+    for (primal_con, val) in dual_point
+        dual_vars = Dualization._get_dual_variables(map, primal_con)
+        if length(dual_vars) != length(val)
+            error(
+                "The dual point entry for constraint $primal_con has " *
+                "length $(length(val)) but the dual variable " *
+                "length is $(length(dual_vars)).",
+            )
+        end
+        for (idx, dual_var) in enumerate(dual_vars)
+            new_dual_point[dual_var] = val[idx]
+            dual_var_to_primal_con[dual_var] = primal_con
+        end
+        dual_con = Dualization._get_dual_constraint(map, primal_con)
+        if dual_con !== nothing
+            dual_con_to_primal_con[dual_con] = primal_con
+            # else
+            #     if !(primal_con isa MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.EqualTo} ||
+            #         primal_con isa MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.Zeros}
+            #         SAF in EQ, etc...
+            #) 
+            #         error("Problem with dualization, see: $primal_con")
+            #     end
+        end
+    end
+    primal_vars = MOI.get(primal_model, MOI.ListOfVariableIndices())
+    dual_con_to_primal_vars =
+        Dict{MOI.ConstraintIndex,Vector{MOI.VariableIndex}}()
+    for primal_var in primal_vars
+        dual_con, idx = Dualization._get_dual_constraint(map, primal_var)
+        # TODO
+        idx = max(idx, 1)
+        if haskey(dual_con_to_primal_vars, dual_con)
+            vec = dual_con_to_primal_vars[dual_con]
+            if idx > length(vec)
+                resize!(vec, idx)
+            end
+            vec[idx] = primal_var
+        else
+            vec = Vector{MOI.VariableIndex}(undef, idx)
+            vec[idx] = primal_var
+            dual_con_to_primal_vars[dual_con] = vec
+        end
+    end
+    return new_dual_point,
+    dual_var_to_primal_con,
+    dual_con_to_primal_vars,
+    dual_con_to_primal_con
+end
+
+function _analyze_dual!(model, dual_model, map, data)
+    dual_point,
+    dual_var_to_primal_con,
+    dual_con_to_primal_vars,
+    dual_con_to_primal_con =
+        _dual_point_to_dual_model_ref(model, map, data.dual_point)
+    types = MOI.get(dual_model, MOI.ListOfConstraintTypesPresent())
+    for (F, S) in types
+        list = MOI.get(dual_model, MOI.ListOfConstraintIndices{F,S}())
+        for con in list
+            func = MOI.get(dual_model, MOI.ConstraintFunction(), con)
+            failed = false
+            val = MOI.Utilities.eval_variables(dual_model, func) do var_idx
+                if !haskey(dual_point, var_idx)
+                    if data.skip_missing
+                        failed = true
+                        return NaN # nothing
+                    else
+                        primal_con = dual_var_to_primal_con[var_idx]
+                        error(
+                            "Missing data for dual of constraint: $primal_con. " *
+                            "Set skip_missing = true to ignore this error.",
+                        )
+                    end
+                end
+                return dual_point[var_idx]
+            end
+            if failed
+                continue
+            end
+            set = MOI.get(dual_model, MOI.ConstraintSet(), con)
+            dist = MOI.Utilities.distance_to_set(val, set)
+            if dist > data.atol
+                if haskey(dual_con_to_primal_vars, con)
+                    vars = dual_con_to_primal_vars[con]
+                    if length(vars) != 1
+                        # TODO improve error
+                        error(
+                            "The dual constraint $con has " *
+                            "length $(length(vars)) != 1",
+                        )
+                    end
+                    push!(data.dual, DualConstraintViolation(vars[], dist))
+                else
+                    con = dual_con_to_primal_con[con]
+                    push!(
+                        data.dual_convar,
+                        DualConstrainedVariableViolation(con, dist),
+                    )
+                end
+            end
+        end
     end
     return
 end
 
 function _analyze_complementarity!(model, data)
-    constraint_list =
-        JuMP.all_constraints(model; include_variable_in_set_constraints = true)
-    for con in constraint_list
-        obj = JuMP.constraint_object(con)
-        func = obj.func
-        set = obj.set
-        func_val =
-            JuMP.value.(x -> data.primal_point[x], func) - _set_value(set)
-        comp_val = MOI.Utilities.set_dot(func_val, data.dual_point[con], set)
-        if abs(comp_val) > data.atol
-            push!(data.complementarity, ComplemetarityViolation(con, comp_val))
+    types = MOI.get(model, MOI.ListOfConstraintTypesPresent())
+    for (F, S) in types
+        list = MOI.get(model, MOI.ListOfConstraintIndices{F,S}())
+        for con in list
+            func = MOI.get(model, MOI.ConstraintFunction(), con)
+            failed = false
+            val = MOI.Utilities.eval_variables(model, func) do var_idx
+                if !haskey(data.primal_point, var_idx)
+                    if data.skip_missing
+                        failed = true
+                        return NaN # nothing
+                    else
+                        error(
+                            "Missing variable in primal point: $var_idx. " *
+                            "Set skip_missing = true to ignore this error.",
+                        )
+                    end
+                end
+                return data.primal_point[var_idx]
+            end
+            set = MOI.get(model, MOI.ConstraintSet(), con)
+            val = val - _set_value(set)
+            if failed
+                continue
+            end
+            if !haskey(data.dual_point, con)
+                if data.skip_missing
+                    continue
+                else
+                    error(
+                        "Missing dual value for constraint: $con. " *
+                        "Set skip_missing = true to ignore this error.",
+                    )
+                end
+            end
+            if length(data.dual_point[con]) != length(val)
+                error(
+                    "The dual point entry for constraint $con has " *
+                    "length $(length(data.dual_point[con])) but the primal " *
+                    "constraint length is $(length(val)) .",
+                )
+            end
+            comp_val = MOI.Utilities.set_dot(val, data.dual_point[con], set)
+            if abs(comp_val) > data.atol
+                push!(
+                    data.complementarity,
+                    ComplemetarityViolation(con, comp_val),
+                )
+            end
         end
     end
     return
@@ -850,33 +1135,19 @@ function _set_value(set::MOI.EqualTo)
     return set.value
 end
 
-function _analyze_objectives!(
-    model::JuMP.GenericModel{T},
-    dual_model,
-    data,
-) where {T}
-    if JuMP.primal_status(model) in
-       (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
-        obj_val_solver = JuMP.objective_value(model)
+function _analyze_objectives!(model::MOI.ModelLike, dual_model, map, data)
+    primal_status = MOI.get(model, MOI.PrimalStatus())
+    dual_status = MOI.get(model, MOI.DualStatus())
+    if primal_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
+        obj_val_solver = MOI.get(model, MOI.ObjectiveValue())
     else
         obj_val_solver = nothing
     end
-    if JuMP.dual_status(model) in
-       (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
-        dual_obj_val_solver = JuMP.dual_objective_value(model)
+
+    if dual_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
+        dual_obj_val_solver = MOI.get(model, MOI.DualObjectiveValue())
     else
         dual_obj_val_solver = nothing
-    end
-
-    obj_func = JuMP.objective_function(model)
-    obj_val = JuMP.value(x -> data.primal_point[x], obj_func)
-
-    if obj_val_solver !== nothing &&
-       !isapprox(obj_val, obj_val_solver; atol = data.atol)
-        push!(
-            data.primal_objective_mismatch,
-            PrimalObjectiveMismatch(obj_val, obj_val_solver),
-        )
     end
 
     if dual_obj_val_solver !== nothing &&
@@ -888,13 +1159,51 @@ function _analyze_objectives!(
         )
     end
 
-    if dual_model !== nothing && data.dual_point !== nothing
-        dual_point_in_dual_model_ref =
-            _dual_point_to_dual_model_ref(dual_model, data.dual_point)
-        dual_obj_val = JuMP.value(
-            x -> dual_point_in_dual_model_ref[x],
-            JuMP.objective_function(dual_model),
+    obj_type = MOI.get(model, MOI.ObjectiveFunctionType())
+    obj_func = MOI.get(model, MOI.ObjectiveFunction{obj_type}())
+    obj_val = MOI.Utilities.eval_variables(model, obj_func) do var_idx
+        if !haskey(data.primal_point, var_idx)
+            if data.skip_missing
+                return NaN # nothing
+            else
+                error(
+                    "Missing variable in primal point: $var_idx. " *
+                    "Set skip_missing = true to ignore this error.",
+                )
+            end
+        end
+        return data.primal_point[var_idx]
+    end
+
+    if obj_val_solver !== nothing &&
+       !isapprox(obj_val, obj_val_solver; atol = data.atol)
+        push!(
+            data.primal_objective_mismatch,
+            PrimalObjectiveMismatch(obj_val, obj_val_solver),
         )
+    end
+
+    if dual_model !== nothing && data.dual_point !== nothing
+        dual_point, dual_var_to_primal_con, _, _ =
+            _dual_point_to_dual_model_ref(model, map, data.dual_point)
+
+        obj_type = MOI.get(dual_model, MOI.ObjectiveFunctionType())
+        obj_func = MOI.get(dual_model, MOI.ObjectiveFunction{obj_type}())
+        dual_obj_val =
+            MOI.Utilities.eval_variables(dual_model, obj_func) do var_idx
+                if !haskey(dual_point, var_idx)
+                    if data.skip_missing
+                        return NaN # nothing
+                    else
+                        primal_con = dual_var_to_primal_con[var_idx]
+                        error(
+                            "Missing data for dual of constraint: $primal_con. " *
+                            "Set skip_missing = true to ignore this error.",
+                        )
+                    end
+                end
+                return dual_point[var_idx]
+            end
 
         if dual_obj_val_solver !== nothing &&
            !isapprox(dual_obj_val, dual_obj_val_solver; atol = data.atol)
@@ -915,272 +1224,41 @@ function _analyze_objectives!(
     return
 end
 
-###
-
-# unsafe as is its checked upstream
-function _last_primal_solution(model::JuMP.GenericModel)
-    return Dict(v => JuMP.value(v) for v in JuMP.all_variables(model))
+function _last_primal_solution(model::MOI.ModelLike)
+    variables = MOI.get(model, MOI.ListOfVariableIndices())
+    return Dict(v => MOI.get(model, MOI.VariablePrimal(), v) for v in variables)
 end
 
-function _last_dual_solution(model::JuMP.GenericModel{T}) where {T}
-    if !JuMP.has_duals(model)
-        error(
-            "No dual solution is available. You must provide a point at " *
-            "which to check feasibility.",
-        )
-    end
-    constraint_list =
-        JuMP.all_constraints(model; include_variable_in_set_constraints = true)
-    ret = Dict{JuMP.ConstraintRef,Vector{T}}()
-    for c in constraint_list
-        _dual = JuMP.dual(c)
-        if typeof(_dual) == Vector{T}
-            ret[c] = _dual
-        else
-            ret[c] = T[_dual]
+function _last_dual_solution(model::MOI.ModelLike)
+    ret = Dict{MOI.ConstraintIndex,Union{Number,Vector{<:Number}}}()
+    types = MOI.get(model, MOI.ListOfConstraintTypesPresent())
+    for (F, S) in types
+        list = MOI.get(model, MOI.ListOfConstraintIndices{F,S}())
+        for con in list
+            val = MOI.get(model, MOI.ConstraintDual(), con)
+            ret[con] = val
         end
     end
     return ret
 end
 
-"""
-    dual_feasibility_report(
-        model::GenericModel{T},
-        point::AbstractDict{GenericVariableRef{T},T} = _last_dual_solution(model),
-        atol::T = zero(T),
-        skip_missing::Bool = false,
-    )::Dict{Any,T}
+function _can_dualize(model::MOI.ModelLike)
+    types = MOI.get(model, MOI.ListOfConstraintTypesPresent())
 
-Given a dictionary `point`, which maps variables to dual values, return a
-dictionary whose keys are the constraints with an infeasibility greater than the
-supplied tolerance `atol`. The value corresponding to each key is the respective
-infeasibility. Infeasibility is defined as the distance between the dual
-value of the constraint (see `MOI.ConstraintDual`) and the nearest point by
-Euclidean distance in the corresponding set.
-
-## Notes
-
- * If `skip_missing = true`, constraints containing variables that are not in
-   `point` will be ignored.
- * If `skip_missing = false` and a partial dual solution is provided, an error
-   will be thrown.
- * If no point is provided, the dual solution from the last time the model was
-   solved is used.
-
-## Example
-
-```jldoctest
-julia> model = Model();
-
-julia> @variable(model, 0.5 <= x <= 1);
-
-julia> dual_feasibility_report(model, Dict(x => 0.2))
-XXXX
-```
-"""
-function dual_feasibility_report(
-    model::JuMP.GenericModel{T},
-    point::AbstractDict = _last_dual_solution(model);
-    atol::T = zero(T),
-    skip_missing::Bool = false,
-    _dual_model = nothing, # helps to avoid dualizing twice
-) where {T}
-    if JuMP.num_nonlinear_constraints(model) > 0
-        error(
-            "Nonlinear constraints are not supported. " *
-            "Use `dual_feasibility_report` instead.",
-        )
-    end
-    if !skip_missing
-        constraint_list = JuMP.all_constraints(
-            model;
-            include_variable_in_set_constraints = true,
-        )
-        for c in constraint_list
-            if !haskey(point, c)
-                error(
-                    "point does not contain a dual for constraint $c. Provide " *
-                    "a dual, or pass `skip_missing = true`.",
-                )
-            end
-        end
-    end
-    dual_model = if _dual_model !== nothing
-        _dual_model
-    else
-        _dualize2(model)
-    end
-    dual_point = _dual_point_to_dual_model_ref(dual_model, point)
-
-    dual_con_to_violation = JuMP.primal_feasibility_report(
-        dual_model,
-        dual_point;
-        atol = atol,
-        skip_missing = skip_missing,
-    )
-
-    # some dual model constraints are associated with primal model variables (primal_con_dual_var)
-    # if variable is free (almost a primal con = ConstraintIndex{MOI.VariableIndex, MOI.Reals})
-    primal_var_dual_con =
-        dual_model.ext[:dualization_primal_dual_map].primal_var_dual_con
-    # if variable is bounded
-    primal_convar_dual_con =
-        dual_model.ext[:dualization_primal_dual_map].constrained_var_dual
-    # other dual model constraints (bounds) are associated with primal model constraints (non-bounds)
-    primal_con_dual_convar =
-        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
-
-    dual_con_primal_all = _build_dual_con_primal_all(
-        primal_var_dual_con,
-        primal_convar_dual_con,
-        primal_con_dual_convar,
-    )
-
-    ret = _fix_ret(dual_con_to_violation, model, dual_con_primal_all)
-
-    return ret
-end
-
-function _dual_point_to_dual_model_ref(
-    dual_model::JuMP.GenericModel{T},
-    point,
-) where {T}
-
-    # point is a:
-    # dict mapping primal constraints to (dual) values
-    # we need to convert it to a:
-    # dict mapping the dual model variables to these (dual) values
-
-    primal_con_dual_var =
-        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_var
-    primal_con_dual_convar =
-        dual_model.ext[:dualization_primal_dual_map].primal_con_dual_con
-
-    dual_point = Dict{JuMP.GenericVariableRef{T},T}()
-    for (jump_con, val) in point
-        moi_con = JuMP.index(jump_con)
-        if haskey(primal_con_dual_var, moi_con)
-            vec_vars = primal_con_dual_var[moi_con]
-            for (i, moi_var) in enumerate(vec_vars)
-                jump_var = JuMP.GenericVariableRef{T}(dual_model, moi_var)
-                dual_point[jump_var] = val[i]
-            end
-        elseif haskey(primal_con_dual_convar, moi_con)
-            moi_convar = primal_con_dual_convar[moi_con]
-            jump_var = JuMP.GenericVariableRef{T}(
-                dual_model,
-                MOI.VariableIndex(moi_convar.value),
-            )
-            dual_point[jump_var] = val
-        else
-            # careful with the case where bounds do not become variables
-            # error("Constraint $jump_con is not associated with a variable in the dual model.")
-        end
-    end
-    return dual_point
-end
-
-function _build_dual_con_primal_all(
-    primal_var_dual_con,
-    primal_convar_dual_con,
-    primal_con_dual_con,
-)
-    # MOI.VariableIndex here represents MOI.ConstraintIndex{MOI.VariableIndex, MOI.Reals}
-    dual_con_primal_all =
-        Dict{MOI.ConstraintIndex,Union{MOI.ConstraintIndex,MOI.VariableIndex}}()
-    for (primal_var, dual_con) in primal_var_dual_con
-        dual_con_primal_all[dual_con] = primal_var
-    end
-    for (primal_con, dual_con) in primal_convar_dual_con
-        dual_con_primal_all[dual_con] = primal_con
-    end
-    for (primal_con, dual_con) in primal_con_dual_con
-        dual_con_primal_all[dual_con] = primal_con
-    end
-    return dual_con_primal_all
-end
-
-function _fix_ret(
-    pre_ret,
-    primal_model::JuMP.GenericModel{T},
-    dual_con_primal_all,
-) where {T}
-    ret = Dict{
-        Union{JuMP.ConstraintRef,JuMP.GenericVariableRef{T}},
-        Union{T,Vector{T}},
-    }()
-    for (jump_dual_con, val) in pre_ret
-        # v is a variable in the dual jump model
-        # we need the associated cosntraint in the primal jump model
-        moi_dual_con = JuMP.index(jump_dual_con)
-        moi_primal_something = dual_con_primal_all[moi_dual_con]
-        if moi_primal_something isa MOI.VariableIndex
-            # variable in the dual model
-            # constraint in the primal model
-            jump_primal_var =
-                JuMP.GenericVariableRef{T}(primal_model, moi_primal_something)
-            # ret[jump_primal_var] = T[val]
-            ret[jump_primal_var] = val
-        else
-            # constraint in the primal model
-            jump_primal_con = JuMP.constraint_ref_with_index(
-                primal_model,
-                moi_primal_something,
-            )
-            # if val isa Vector
-            #     ret[jump_primal_con] = val
-            # else
-            #     ret[jump_primal_con] = T[val]
-            # end
-            ret[jump_primal_con] = val
-        end
-    end
-    return ret
-end
-
-function _dualize2(
-    model::JuMP.GenericModel,
-    optimizer_constructor = nothing;
-    kwargs...,
-)
-    mode = JuMP.mode(model)
-    if mode == JuMP.MANUAL
-        error("Dualization does not support solvers in $(mode) mode")
-    end
-    dual_model = JuMP.GenericModel()
-    dual_problem = Dualization.DualProblem(JuMP.backend(dual_model))
-    Dualization.dualize(JuMP.backend(model), dual_problem; kwargs...)
-    Dualization._fill_obj_dict_with_variables!(dual_model)
-    Dualization._fill_obj_dict_with_constraints!(dual_model)
-    if optimizer_constructor !== nothing
-        JuMP.set_optimizer(dual_model, optimizer_constructor)
-    end
-    dual_model.ext[:dualization_primal_dual_map] = dual_problem.primal_dual_map
-    return dual_model
-end
-
-function _can_dualize(model::JuMP.GenericModel)
-    types = JuMP.list_of_constraint_types(model)
-
-    for (_F, S) in types
-        F = JuMP.moi_function_type(_F)
+    for (F, S) in types
         if !Dualization.supported_constraint(F, S)
             return false
         end
     end
 
-    _F = JuMP.objective_function_type(model)
-    F = JuMP.moi_function_type(_F)
+    F = MOI.get(model, MOI.ObjectiveFunctionType())
 
-    if !Dualization.supported_obj(F)
+    if !Dualization.supported_objective(F)
         return false
     end
 
-    if JuMP.num_nonlinear_constraints(model) > 0
-        return false
-    end
-
-    if JuMP.objective_sense(model) == MOI.FEASIBILITY_SENSE
+    sense = MOI.get(model, MOI.ObjectiveSense())
+    if sense == MOI.FEASIBILITY_SENSE
         return false
     end
 

@@ -3,7 +3,11 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
+module ModelAnalyzerJuMPExt
+
+import ModelAnalyzer
 import JuMP
+import MathOptInterface as MOI
 
 function ModelAnalyzer.analyze(
     analyzer::T,
@@ -74,3 +78,5 @@ function ModelAnalyzer.constraint(
     ref = ModelAnalyzer.constraint(issue)
     return JuMP.constraint_ref_with_index(model, ref)
 end
+
+end # module ModelAnalyzerJuMPExt
