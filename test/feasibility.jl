@@ -573,97 +573,98 @@ function test_analyse_mip()
     return
 end
 
-#=
-
 function test_analyse_no_opt()
-model = Model(HiGHS.Optimizer)
-set_silent(model)
-@variable(model, x)
-@constraint(model, c, x >= 0)
-@objective(model, Min, x)
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c, x >= 0)
+    @objective(model, Min, x)
 
-# test no primal point
-@test_throws ErrorException ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-)
+    # test no primal point
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+    )
 
-# test no dual point
-@test_throws ErrorException ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => 1.0),
-    dual_check = true,
-)
+    # test no dual point
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        dual_check = true,
+    )
 
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => 1.0),
-    dual_check = false,
-)
-list = ModelAnalyzer.list_of_issue_types(data)
-@test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        dual_check = false,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
 
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => -1.0),
-    dual_check = false,
-)
-list = ModelAnalyzer.list_of_issue_types(data)
-@test length(list) == 1
-ret = ModelAnalyzer.list_of_issues(data, list[1])
-@test ret[] == ModelAnalyzer.Feasibility.PrimalViolation(c, 1.0)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => -1.0),
+        dual_check = false,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test ret[] == ModelAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
 
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => 1.0),
-    dual_point = Dict(c => 1.0),
-)
-list = ModelAnalyzer.list_of_issue_types(data)
-@test length(list) == 2
-ret = ModelAnalyzer.list_of_issues(data, list[1])
-@test ret[1] == ModelAnalyzer.Feasibility.ComplemetarityViolation(c, 1.0)
-ret = ModelAnalyzer.list_of_issues(data, list[2])
-@test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(1.0, 0.0)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test ret[1] ==
+          ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), 1.0)
+    ret = ModelAnalyzer.list_of_issues(data, list[2])
+    @test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(1.0, 0.0)
 
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => 0.0),
-    dual_point = Dict(c => 1.0),
-)
-list = ModelAnalyzer.list_of_issue_types(data)
-@test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
 
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
-    model,
-    primal_point = Dict(x => -1.0),
-    dual_point = Dict(c => 2.0),
-)
-list = ModelAnalyzer.list_of_issue_types(data)
-@test length(list) == 4
-ret = ModelAnalyzer.list_of_issues(data, list[1])
-@test ret[1] == ModelAnalyzer.Feasibility.PrimalViolation(c, 1.0)
-ret = ModelAnalyzer.list_of_issues(data, list[2])
-@test ret[1] == ModelAnalyzer.Feasibility.DualConstraintViolation(x, 1.0)
-ret = ModelAnalyzer.list_of_issues(data, list[3])
-@test ret[1] == ModelAnalyzer.Feasibility.ComplemetarityViolation(c, -2.0)
-ret = ModelAnalyzer.list_of_issues(data, list[4])
-@test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => -1.0),
+        dual_point = Dict(JuMP.index(c) => 2.0),
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 4
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test ret[1] ==
+          ModelAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    ret = ModelAnalyzer.list_of_issues(data, list[2])
+    @test ret[1] ==
+          ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 1.0)
+    ret = ModelAnalyzer.list_of_issues(data, list[3])
+    @test ret[1] ==
+          ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -2.0)
+    ret = ModelAnalyzer.list_of_issues(data, list[4])
+    @test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
 
-buf = IOBuffer()
+    buf = IOBuffer()
 
-ModelAnalyzer.summarize(buf, data)
+    ModelAnalyzer.summarize(buf, data)
 
-ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = false)
 
-return
+    return
 end
-=#
 
 # these tests are harder to permorm with a real solver as they tipically
 # return coherent objectives
