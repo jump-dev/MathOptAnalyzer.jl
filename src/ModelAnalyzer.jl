@@ -78,6 +78,10 @@ function summarize(io::IO, ::Type{T}; verbose = true) where {T<:AbstractIssue}
     end
 end
 
+function summarize(::Type{T}; kwargs...) where {T<:AbstractIssue}
+    return summarize(stdout, T; kwargs...)
+end
+
 function summarize(
     io::IO,
     issue::AbstractIssue;
@@ -89,6 +93,10 @@ function summarize(
     else
         return _summarize(io, issue, model)
     end
+end
+
+function summarize(issue::AbstractIssue; kwargs...)
+    return summarize(stdout, issue; kwargs...)
 end
 
 const DEFAULT_MAX_ISSUES = 10
@@ -118,6 +126,10 @@ function summarize(
         print(io, "\n")
     end
     return
+end
+
+function summarize(issues::Vector{T}; kwargs...) where {T<:AbstractIssue}
+    return summarize(stdout, issues; kwargs...)
 end
 
 function summarize(data::AbstractData; kwargs...)

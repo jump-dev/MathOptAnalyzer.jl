@@ -39,7 +39,7 @@ run:
 
 ```julia
 using Pkg
-Pkg.add("https://github.com/jump-dev/ModelAnalyzer.jl")
+Pkg.add(url = "https://github.com/jump-dev/ModelAnalyzer.jl")
 ```
 
 ## Usage
@@ -118,14 +118,14 @@ or it can be further inspected programmatically.
 list = ModelAnalyzer.list_of_issue_types(data)
 
 # information about the types of issues found can be printed out
-ModelAnalyzer.summarize(data, list[1])
+ModelAnalyzer.summarize(list[1])
 
 # for each issue type, you can get the actual issues found in the analysis
 issues = ModelAnalyzer.list_of_issues(data, list[1])
 
 # the list of issues of the given type can be summarized with:
-ModelAnalyzer.summarize(data, issues)
+ModelAnalyzer.summarize(issues)
 
 # individual issues can also be summarized
-ModelAnalyzer.summarize(data, issues[1])
+ModelAnalyzer.summarize(issues[1])
 ```
