@@ -216,6 +216,6 @@ end
 
 include("numerical.jl")
 include("feasibility.jl")
-# include("infeasibility.jl")
+include("infeasibility.jl")
 
 end # module ModelAnalyzer

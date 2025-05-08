@@ -54,6 +54,7 @@ struct Interval{T}
     lo::T
     hi::T
 end
+
 function Interval(lo::T, hi::T) where {T<:Real}
     # if hi < lo <= hi + eps(T)
     #     lo = hi
