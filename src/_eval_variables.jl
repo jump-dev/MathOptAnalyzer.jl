@@ -9,11 +9,6 @@ function _eval_variables(value_fn::Function, t::MOI.ScalarAffineTerm)
     return t.coefficient * value_fn(t.variable)
 end
 
-function _eval_variables(value_fn::Function, t::MOI.ScalarQuadraticTerm)
-    out = t.coefficient * value_fn(t.variable_1) * value_fn(t.variable_2)
-    return t.variable_1 == t.variable_2 ? out / 2 : out
-end
-
 _eval_variables(value_fn::Function, f::MOI.VariableIndex) = value_fn(f)
 
 function _eval_variables(
@@ -22,7 +17,7 @@ function _eval_variables(
 ) where {T}
     # TODO: this conversion exists in JuMP, but not in MOI
     S = Base.promote_op(value_fn, MOI.VariableIndex)
-    U = Base.promote_op(*, T, S)
+    U = MOI.MA.promote_operation(*, T, S)
     out = convert(U, f.constant)
     for t in f.terms
         out += _eval_variables(value_fn, t)

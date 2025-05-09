@@ -63,6 +63,10 @@ function Interval(lo::T, hi::T) where {T<:Real}
     return Interval{T}(lo, hi)
 end
 
+function Base.zero(::Type{Interval{T}}) where {T<:Real}
+    return Interval(zero(T), zero(T))
+end
+
 function Base.iszero(a::Interval)
     return iszero(a.hi) && iszero(a.lo)
 end
