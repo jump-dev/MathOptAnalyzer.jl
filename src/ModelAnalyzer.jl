@@ -152,6 +152,19 @@ function value(issue::AbstractIssue, ::MOI.ModelLike)
 end
 
 """
+    values(issue::AbstractIssue)
+
+Return the values associated to a particular issue.
+"""
+function values(issue::AbstractIssue, ::Nothing)
+    return values(issue)
+end
+
+function values(issue::AbstractIssue, ::MOI.ModelLike)
+    return values(issue)
+end
+
+"""
     variable(issue::AbstractIssue)
 
 Return the variable associated to a particular issue.
@@ -188,6 +201,32 @@ end
 
 function constraint(issue::AbstractIssue, ::MOI.ModelLike)
     return constraint(issue)
+end
+
+"""
+    constraints(issue::AbstractIssue)
+
+Return the constraints associated to a particular issue.
+"""
+function constraints(issue::AbstractIssue, ::Nothing)
+    return constraints(issue)
+end
+
+function constraints(issue::AbstractIssue, ::MOI.ModelLike)
+    return constraints(issue)
+end
+
+"""
+    set(issue::AbstractIssue)
+
+Return the set associated to a particular issue.
+"""
+function set(issue::AbstractIssue, ::Nothing)
+    return set(issue)
+end
+
+function set(issue::AbstractIssue, ::MOI.ModelLike)
+    return set(issue)
 end
 
 function _verbose_summarize end

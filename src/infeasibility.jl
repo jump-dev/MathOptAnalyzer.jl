@@ -55,6 +55,10 @@ struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
     ub::T
 end
 
+ModelAnalyzer.variable(issue::InfeasibleBounds) = issue.variable
+
+ModelAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
+
 """
     InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
 
@@ -76,6 +80,12 @@ struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
     ub::T
     set::Union{MOI.Integer,MOI.ZeroOne}#, MOI.Semicontinuous{T}, MOI.Semiinteger{T}}
 end
+
+ModelAnalyzer.variable(issue::InfeasibleIntegrality) = issue.variable
+
+ModelAnalyzer.values(issue::InfeasibleIntegrality) = [issue.lb, issue.ub]
+
+ModelAnalyzer.set(issue::InfeasibleIntegrality) = issue.set
 
 """
     InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
@@ -101,6 +111,12 @@ struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
     set::Union{MOI.EqualTo{T},MOI.LessThan{T},MOI.GreaterThan{T}}
 end
 
+ModelAnalyzer.constraint(issue::InfeasibleConstraintRange) = issue.constraint
+
+ModelAnalyzer.values(issue::InfeasibleConstraintRange) = [issue.lb, issue.ub]
+
+ModelAnalyzer.set(issue::InfeasibleConstraintRange) = issue.set
+
 """
     IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
 
@@ -120,6 +136,8 @@ julia> ModelAnalyzer.summarize(
 struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
     constraint::Vector{<:MOI.ConstraintIndex}
 end
+
+ModelAnalyzer.constraints(issue::IrreducibleInfeasibleSubset) = issue.constraint
 
 """
     Data <: ModelAnalyzer.AbstractData

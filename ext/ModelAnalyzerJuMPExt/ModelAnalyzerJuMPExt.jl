@@ -79,4 +79,17 @@ function ModelAnalyzer.constraint(
     return JuMP.constraint_ref_with_index(model, ref)
 end
 
+"""
+    constraintss(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
+
+Return the **JuMP** constraints reference associated to a particular issue.
+"""
+function ModelAnalyzer.constraints(
+    issue::ModelAnalyzer.AbstractIssue,
+    model::JuMP.GenericModel,
+)
+    ref = ModelAnalyzer.constraints(issue)
+    return JuMP.constraint_ref_with_index.(model, ref)
+end
+
 end # module ModelAnalyzerJuMPExt

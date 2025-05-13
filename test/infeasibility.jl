@@ -37,6 +37,8 @@ function test_bounds()
         2.0,
         1.0,
     )
+    @test ModelAnalyzer.variable(ret[], model) == y
+    @test ModelAnalyzer.values(ret[]) == [2.0, 1.0]
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -82,6 +84,9 @@ function test_integrality()
         2.9,
         MOI.Integer(),
     )
+    @test ModelAnalyzer.variable(ret[], model) == y
+    @test ModelAnalyzer.values(ret[]) == [2.2, 2.9]
+    @test ModelAnalyzer.set(ret[]) == MOI.Integer()
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -129,6 +134,9 @@ function test_binary()
         0.8,
         MOI.ZeroOne(),
     )
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.values(ret[]) == [0.5, 0.8]
+    @test ModelAnalyzer.set(ret[]) == MOI.ZeroOne()
     return
 end
 
@@ -150,6 +158,9 @@ function test_range()
         22.0,
         MOI.LessThan{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.LessThan{Float64}(1.0)
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -198,6 +209,9 @@ function test_range_neg()
         22.0,
         MOI.LessThan{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.LessThan{Float64}(1.0)
     return
 end
 
@@ -219,6 +233,9 @@ function test_range_equalto()
         3.0,
         MOI.EqualTo{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [3.0, 3.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(1.0)
     return
 end
 
@@ -240,6 +257,9 @@ function test_range_equalto_2()
         7.0,
         MOI.EqualTo{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [7.0, 7.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(1.0)
     return
 end
 
@@ -261,6 +281,9 @@ function test_range_greaterthan()
         22.0,
         MOI.GreaterThan{Float64}(100.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.GreaterThan{Float64}(100.0)
     return
 end
 
@@ -282,6 +305,9 @@ function test_range_equalto_3()
         22.0,
         MOI.EqualTo{Float64}(100.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(100.0)
     return
 end
 
@@ -326,6 +352,9 @@ function test_iis()
     @test length(ret[].constraint) == 2
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
           Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -388,6 +417,10 @@ function test_iis_multiple()
     @test JuMP.index(c2) in Set([ret[].constraint[1], ret[].constraint[2]])
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ⊆
           Set(JuMP.index.([c3, c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) ⊆ Set([c3, c2, c1])
+    @test c2 in iis
     return
 end
 
@@ -415,6 +448,9 @@ function test_iis_interval_right()
     @test length(ret[].constraint) == 2
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
           Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 
@@ -442,6 +478,9 @@ function test_iis_interval_left()
     @test length(ret[].constraint) == 2
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
           Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 
@@ -472,6 +511,9 @@ function test_iis_spare()
     @test length(ret[].constraint) == 2
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
           Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 
