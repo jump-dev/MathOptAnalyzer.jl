@@ -285,7 +285,6 @@ function test_range_equalto_3()
     return
 end
 
-#=
 
 function test_iis_feasible()
     model = Model(HiGHS.Optimizer)
@@ -363,6 +362,7 @@ function test_iis()
     return
 end
 
+
 function test_iis_multiple()
     model = Model(HiGHS.Optimizer)
     set_silent(model)
@@ -386,7 +386,7 @@ function test_iis_multiple()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test c2 in Set([ret[].constraint[1], ret[].constraint[2]])
+    @test JuMP.index(c2) in Set([ret[].constraint[1], ret[].constraint[2]])
     @test Set([ret[].constraint[1], ret[].constraint[2]]) ⊆ Set(JuMP.index.([c3, c2, c1]))
     return
 end
@@ -471,8 +471,6 @@ function test_iis_spare()
     @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set(JuMP.index.([c2, c1]))
     return
 end
-
-=#
 
 end # module
 

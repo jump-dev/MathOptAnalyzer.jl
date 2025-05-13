@@ -364,25 +364,57 @@ function ModelAnalyzer.analyze(
         println("iis resolver cannot continue because no optimizer is provided")
         return out
     end
-    # iis = iis_elastic_filter(model, optimizer)
-    # # for now, only one iis is computed
-    # if iis !== nothing
-    #     push!(out.iis, IrreducibleInfeasibleSubset(iis))
-    # end
+    iis = iis_elastic_filter(model, optimizer)
+    # for now, only one iis is computed
+    if iis !== nothing
+        push!(out.iis, IrreducibleInfeasibleSubset(iis))
+    end
 
     return out
 end
 
-#=
+function _fix_to_zero(model, variable::MOI.VariableIndex, ::Type{T}) where {T}
+    ub_idx =
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{T}}(variable.value)
+    lb_idx = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{T}}(
+        variable.value,
+    )
+    has_lower = false
+    if MOI.is_valid(model, lb_idx)
+        MOI.delete(model, lb_idx)
+        has_lower = true
+    elseif MOI.is_valid(model, ub_idx)
+        MOI.delete(model, ub_idx)
+    else
+        error("Variable is not bounded")
+    end
+    MOI.add_constraint(model, variable, MOI.EqualTo{T}(zero(T)))
+    return has_lower
+end
 
-function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
+function _set_bound_zero(
+    model,
+    variable::MOI.VariableIndex,
+    has_lower::Bool,
+    ::Type{T},
+) where {T}
+    eq_idx =
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{T}}(variable.value)
+    @assert MOI.is_valid(model, eq_idx)
+    MOI.delete(model, eq_idx)
+    if has_lower
+        MOI.add_constraint(model, variable, MOI.GreaterThan{T}(zero(T)))
+    else
+        MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
+    end
+    return
+end
 
-    # if JuMP.termination_status(original_model) == MOI.OPTIMIZE_NOT_CALLED
-    #     println("iis resolver cannot continue because model is not optimized")
-    #     # JuMP.optimize!(original_model)
-    # end
+function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
+    T = Float64
 
-    status = JuMP.termination_status(original_model)
+    # handle optimize not called
+    status = MOI.get(original_model, MOI.TerminationStatus())
     if status != MOI.INFEASIBLE
         println(
             "iis resolver cannot continue because model is found to be $(status) by the solver",
@@ -390,15 +422,13 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
         return nothing
     end
 
-    model, reference_map = JuMP.copy_model(original_model)
-    JuMP.set_optimizer(model, optimizer)
-    JuMP.set_silent(model)
-    # TODO handle ".ext" to avoid warning
+    model = MOI.instantiate(optimizer)
+    reference_map = MOI.copy_to(model, original_model)
+    MOI.set(model, MOI.Silent(), true)
 
-    constraint_to_affine = JuMP.relax_with_penalty!(model, default = 1.0)
+    constraint_to_affine =
+        MOI.modify(model, MOI.Utilities.PenaltyRelaxation(default = 1.0))
     # might need to do something related to integers / binary
-
-    JuMP.optimize!(model)
 
     max_iterations = length(constraint_to_affine)
 
@@ -407,47 +437,45 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
     de_elastisized = []
 
     for i in 1:max_iterations
-        if JuMP.termination_status(model) == MOI.INFEASIBLE
+        MOI.optimize!(model)
+        status = MOI.get(model, MOI.TerminationStatus())
+        if status == MOI.INFEASIBLE
             break
         end
         for (con, func) in constraint_to_affine
             if length(func.terms) == 1
-                var = collect(keys(func.terms))[1]
-                if JuMP.value(var) > tolerance
-                    has_lower = JuMP.has_lower_bound(var)
-                    JuMP.fix(var, 0.0; force = true)
-                    # or delete(model, var)
+                var = func.terms[1].variable
+                value = MOI.get(model, MOI.VariablePrimal(), var)
+                if value > tolerance
+                    has_lower = _fix_to_zero(model, var, T)
                     delete!(constraint_to_affine, con)
                     push!(de_elastisized, (con, var, has_lower))
                 end
             elseif length(func.terms) == 2
-                var = collect(keys(func.terms))
-                coef1 = func.terms[var[1]]
-                coef2 = func.terms[var[2]]
-                if JuMP.value(var[1]) > tolerance &&
-                   JuMP.value(var[2]) > tolerance
+                var1 = func.terms[1].variable
+                coef1 = func.terms[1].coefficient
+                var2 = func.terms[2].variable
+                coef2 = func.terms[2].coefficient
+                value1 = MOI.get(model, MOI.VariablePrimal(), var1)
+                value2 = MOI.get(model, MOI.VariablePrimal(), var2)
+                if value1 > tolerance && value2 > tolerance
                     error("IIS failed due numerical instability")
-                elseif JuMP.value(var[1]) > tolerance
-                    has_lower = JuMP.has_lower_bound(var[1])
-                    JuMP.fix(var[1], 0.0; force = true)
-                    # or delete(model, var[1])
+                elseif value1 > tolerance
+                    has_lower = _fix_to_zero(model, var1, T)
                     delete!(constraint_to_affine, con)
-                    constraint_to_affine[con] = coef2 * var[2]
-                    push!(de_elastisized, (con, var[1], has_lower))
-                elseif JuMP.value(var[2]) > tolerance
-                    has_lower = JuMP.has_lower_bound(var[2])
-                    JuMP.fix(var[2], 0.0; force = true)
-                    # or delete(model, var[2])
+                    constraint_to_affine[con] = coef2 * var2
+                    push!(de_elastisized, (con, var1, has_lower))
+                elseif value2 > tolerance
+                    has_lower = _fix_to_zero(model, var2, T)
                     delete!(constraint_to_affine, con)
-                    constraint_to_affine[con] = coef1 * var[1]
-                    push!(de_elastisized, (con, var[2], has_lower))
+                    constraint_to_affine[con] = coef1 * var1
+                    push!(de_elastisized, (con, var2, has_lower))
                 end
             else
                 println(
                     "$con and relaxing function with more than two terms: $func",
                 )
             end
-            JuMP.optimize!(model)
         end
     end
 
@@ -455,45 +483,37 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
     # be careful with intervals
 
     # deletion filter
-    cadidates = JuMP.ConstraintRef[]
+    cadidates = MOI.ConstraintIndex[]
     for (con, var, has_lower) in de_elastisized
-        JuMP.unfix(var)
-        if has_lower
-            JuMP.set_lower_bound(var, 0.0)
-        else
-            JuMP.set_upper_bound(var, 0.0)
-        end
-        JuMP.optimize!(model)
-        if JuMP.termination_status(model) in
-           (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE)
+        _set_bound_zero(model, var, has_lower, T)
+        MOI.optimize!(model)
+        status = MOI.get(model, MOI.TerminationStatus())
+        if status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE)
             # this constraint is not in IIS
-        elseif JuMP.termination_status(model) in
-               (MOI.OPTIMAL, MOI.ALMOST_OPTIMAL)
+        elseif status in (MOI.OPTIMAL, MOI.ALMOST_OPTIMAL)
             push!(cadidates, con)
-            JuMP.fix(var, 0.0, force = true)
+            _fix_to_zero(model, var, T)
         else
-            error(
-                "IIS failed due numerical instability, got status $(JuMP.termination_status(model))",
-            )
+            error("IIS failed due numerical instability, got status $status")
         end
     end
 
     pre_iis = Set(cadidates)
-    iis = JuMP.ConstraintRef[]
-    for con in JuMP.all_constraints(
-        original_model,
-        include_variable_in_set_constraints = false,
-    )
-        new_con = reference_map[con]
-        if new_con in pre_iis
-            push!(iis, con)
+    iis = MOI.ConstraintIndex[]
+    for (F, S) in MOI.get(original_model, MOI.ListOfConstraintTypesPresent())
+        if F == MOI.VariableIndex
+            continue
+        end
+        for con in MOI.get(original_model, MOI.ListOfConstraintIndices{F,S}())
+            new_con = reference_map[con]
+            if new_con in pre_iis
+                push!(iis, con)
+            end
         end
     end
 
     return iis
 end
-
-=#
 
 # API
 
