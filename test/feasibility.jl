@@ -92,6 +92,8 @@ function test_only_bounds()
         JuMP.index(LowerBoundRef(x)),
         1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.ComplemetarityViolation,
@@ -100,11 +102,14 @@ function test_only_bounds()
         JuMP.index(LowerBoundRef(x)),
         -1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == -1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
     )
     @test ret[] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
+    # @test ModelAnalyzer.values(ret[]) == [-1.0, 0.0]
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -125,6 +130,8 @@ function test_only_bounds()
         JuMP.index(LowerBoundRef(x)),
         1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
@@ -150,6 +157,8 @@ function test_only_bounds()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.0)
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 2.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
@@ -158,6 +167,8 @@ function test_only_bounds()
         JuMP.index(LowerBoundRef(x)),
         1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.ComplemetarityViolation,
@@ -166,6 +177,8 @@ function test_only_bounds()
         JuMP.index(LowerBoundRef(x)),
         -1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == -1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
@@ -213,12 +226,16 @@ function test_no_lb()
         ModelAnalyzer.Feasibility.PrimalViolation,
     )
     @test ret[] == ModelAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.ComplemetarityViolation,
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -1.0)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == -1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
@@ -242,6 +259,8 @@ function test_no_lb()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), 1.0)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
@@ -267,6 +286,8 @@ function test_no_lb()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.0)
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 2.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
@@ -275,12 +296,16 @@ function test_no_lb()
         JuMP.index(c),
         1.0,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.ComplemetarityViolation,
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -1.0)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == -1.0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
@@ -329,6 +354,8 @@ function test_lb0()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.3)
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 2.3
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -351,6 +378,8 @@ function test_lb0()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 4.3)
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 4.3
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
@@ -359,6 +388,9 @@ function test_lb0()
         JuMP.index(c),
         3.3,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 3.3
+    return
 end
 
 function test_lb2()
@@ -398,6 +430,8 @@ function test_lb2()
     )
     @test ret[] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.3)
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 2.3
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -422,6 +456,8 @@ function test_lb2()
         JuMP.index(c),
         3.3,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 3.3
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -446,10 +482,14 @@ function test_lb2()
         JuMP.index(c),
         3.3,
     )
+    @test ModelAnalyzer.constraint(ret[1], model) == c
+    @test ModelAnalyzer.value(ret[1]) == 3.3
     @test ret[2] == ModelAnalyzer.Feasibility.DualConstrainedVariableViolation(
         JuMP.index(LowerBoundRef(x)),
         1.0,
     )
+    @test ModelAnalyzer.constraint(ret[2], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[2]) == 1.0
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -470,6 +510,8 @@ function test_lb2()
         JuMP.index(c),
         3.3,
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 3.3
     return
 end
 
@@ -613,6 +655,8 @@ function test_analyse_no_opt()
     @test length(list) == 1
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test ret[] == ModelAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1.0
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -625,6 +669,8 @@ function test_analyse_no_opt()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test ret[1] ==
           ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), 1.0)
+    @test ModelAnalyzer.constraint(ret[1], model) == c
+    @test ModelAnalyzer.value(ret[1]) == 1.0
     ret = ModelAnalyzer.list_of_issues(data, list[2])
     @test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(1.0, 0.0)
 
@@ -648,12 +694,18 @@ function test_analyse_no_opt()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test ret[1] ==
           ModelAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    @test ModelAnalyzer.constraint(ret[1], model) == c
+    @test ModelAnalyzer.value(ret[1]) == 1.0
     ret = ModelAnalyzer.list_of_issues(data, list[2])
     @test ret[1] ==
           ModelAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 1.0)
+    @test ModelAnalyzer.variable(ret[1], model) == x
+    @test ModelAnalyzer.value(ret[1]) == 1.0
     ret = ModelAnalyzer.list_of_issues(data, list[3])
     @test ret[1] ==
           ModelAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -2.0)
+    @test ModelAnalyzer.constraint(ret[1], model) == c
+    @test ModelAnalyzer.value(ret[1]) == -2.0
     ret = ModelAnalyzer.list_of_issues(data, list[4])
     @test ret[1] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
 

@@ -66,6 +66,10 @@ struct PrimalViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
+ModelAnalyzer.constraint(issue::PrimalViolation) = issue.ref
+
+ModelAnalyzer.value(issue::PrimalViolation) = issue.violation
+
 """
     DualConstraintViolation <: AbstractFeasibilityIssue
 
@@ -82,6 +86,10 @@ struct DualConstraintViolation <: AbstractFeasibilityIssue
     ref::MOI.VariableIndex
     violation::Float64
 end
+
+ModelAnalyzer.variable(issue::DualConstraintViolation) = issue.ref
+
+ModelAnalyzer.value(issue::DualConstraintViolation) = issue.violation
 
 """
     DualConstrainedVariableViolation <: AbstractFeasibilityIssue
@@ -101,6 +109,10 @@ struct DualConstrainedVariableViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
+ModelAnalyzer.constraint(issue::DualConstrainedVariableViolation) = issue.ref
+
+ModelAnalyzer.value(issue::DualConstrainedVariableViolation) = issue.violation
+
 """
     ComplemetarityViolation <: AbstractFeasibilityIssue
 
@@ -119,6 +131,10 @@ struct ComplemetarityViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
+ModelAnalyzer.constraint(issue::ComplemetarityViolation) = issue.ref
+
+ModelAnalyzer.value(issue::ComplemetarityViolation) = issue.violation
+
 """
     DualObjectiveMismatch <: AbstractFeasibilityIssue
 
@@ -135,6 +151,8 @@ struct DualObjectiveMismatch <: AbstractFeasibilityIssue
     obj::Float64
     obj_solver::Float64
 end
+
+# ModelAnalyzer.values(issue::DualObjectiveMismatch) = [issue.obj, issue.obj_solver]
 
 """
     PrimalObjectiveMismatch <: AbstractFeasibilityIssue
@@ -153,6 +171,8 @@ struct PrimalObjectiveMismatch <: AbstractFeasibilityIssue
     obj_solver::Float64
 end
 
+# ModelAnalyzer.values(issue::PrimalObjectiveMismatch) = [issue.obj, issue.obj_solver]
+
 """
     PrimalDualMismatch <: AbstractFeasibilityIssue
 
@@ -170,6 +190,8 @@ struct PrimalDualMismatch <: AbstractFeasibilityIssue
     dual::Float64
 end
 
+ModelAnalyzer.values(issue::PrimalDualMismatch) = [issue.primal, issue.dual]
+
 """
     PrimalDualSolverMismatch <: AbstractFeasibilityIssue
 
@@ -186,6 +208,8 @@ struct PrimalDualSolverMismatch <: AbstractFeasibilityIssue
     primal::Float64
     dual::Float64
 end
+
+# ModelAnalyzer.values(issue::PrimalDualSolverMismatch) = [issue.primal, issue.dual]
 
 """
     Data
