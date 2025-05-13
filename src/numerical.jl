@@ -332,9 +332,7 @@ struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-function ModelAnalyzer.variables(
-    issue::LargeObjectiveQuadraticCoefficient,
-)
+function ModelAnalyzer.variables(issue::LargeObjectiveQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
 
