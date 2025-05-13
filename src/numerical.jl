@@ -61,7 +61,8 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableNotInConstraints)
 struct VariableNotInConstraints <: AbstractNumericalIssue
     ref::MOI.VariableIndex
 end
-ModelAnalyzer.variable(issue::VariableNotInConstraints, model) = issue.ref
+
+ModelAnalyzer.variable(issue::VariableNotInConstraints) = issue.ref
 
 """
     EmptyConstraint <: AbstractNumericalIssue
@@ -77,7 +78,8 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.EmptyConstraint)
 struct EmptyConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
-ModelAnalyzer.constraint(issue::EmptyConstraint, model) = issue.ref
+
+ModelAnalyzer.constraint(issue::EmptyConstraint) = issue.ref
 
 """
     VariableBoundAsConstraint <: AbstractNumericalIssue
@@ -94,7 +96,8 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableBoundAsConstraint
 struct VariableBoundAsConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
-ModelAnalyzer.constraint(issue::VariableBoundAsConstraint, model) = issue.ref
+
+ModelAnalyzer.constraint(issue::VariableBoundAsConstraint) = issue.ref
 
 """
     DenseConstraint <: AbstractNumericalIssue
@@ -112,7 +115,9 @@ struct DenseConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     nnz::Int
 end
-ModelAnalyzer.constraint(issue::DenseConstraint, model) = issue.ref
+
+ModelAnalyzer.constraint(issue::DenseConstraint) = issue.ref
+
 ModelAnalyzer.value(issue::DenseConstraint) = issue.nnz
 
 """
@@ -131,8 +136,11 @@ struct SmallMatrixCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::SmallMatrixCoefficient, model) = issue.variable
-ModelAnalyzer.constraint(issue::SmallMatrixCoefficient, model) = issue.ref
+
+ModelAnalyzer.variable(issue::SmallMatrixCoefficient) = issue.variable
+
+ModelAnalyzer.constraint(issue::SmallMatrixCoefficient) = issue.ref
+
 ModelAnalyzer.value(issue::SmallMatrixCoefficient) = issue.coefficient
 
 """
@@ -151,8 +159,11 @@ struct LargeMatrixCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::LargeMatrixCoefficient, model) = issue.variable
-ModelAnalyzer.constraint(issue::LargeMatrixCoefficient, model) = issue.ref
+
+ModelAnalyzer.variable(issue::LargeMatrixCoefficient) = issue.variable
+
+ModelAnalyzer.constraint(issue::LargeMatrixCoefficient) = issue.ref
+
 ModelAnalyzer.value(issue::LargeMatrixCoefficient) = issue.coefficient
 
 """
@@ -170,7 +181,9 @@ struct SmallBoundCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::SmallBoundCoefficient, model) = issue.variable
+
+ModelAnalyzer.variable(issue::SmallBoundCoefficient) = issue.variable
+
 ModelAnalyzer.value(issue::SmallBoundCoefficient) = issue.coefficient
 
 """
@@ -188,7 +201,9 @@ struct LargeBoundCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::LargeBoundCoefficient, model) = issue.variable
+
+ModelAnalyzer.variable(issue::LargeBoundCoefficient) = issue.variable
+
 ModelAnalyzer.value(issue::LargeBoundCoefficient) = issue.coefficient
 
 """
@@ -206,7 +221,9 @@ struct SmallRHSCoefficient <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     coefficient::Float64
 end
-ModelAnalyzer.constraint(issue::SmallRHSCoefficient, model) = issue.ref
+
+ModelAnalyzer.constraint(issue::SmallRHSCoefficient) = issue.ref
+
 ModelAnalyzer.value(issue::SmallRHSCoefficient) = issue.coefficient
 
 """
@@ -224,7 +241,9 @@ struct LargeRHSCoefficient <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
     coefficient::Float64
 end
-ModelAnalyzer.constraint(issue::LargeRHSCoefficient, model) = issue.ref
+
+ModelAnalyzer.constraint(issue::LargeRHSCoefficient) = issue.ref
+
 ModelAnalyzer.value(issue::LargeRHSCoefficient) = issue.coefficient
 
 """
@@ -242,7 +261,9 @@ struct SmallObjectiveCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::SmallObjectiveCoefficient, model) = issue.variable
+
+ModelAnalyzer.variable(issue::SmallObjectiveCoefficient) = issue.variable
+
 ModelAnalyzer.value(issue::SmallObjectiveCoefficient) = issue.coefficient
 
 """
@@ -260,7 +281,9 @@ struct LargeObjectiveCoefficient <: AbstractNumericalIssue
     variable::MOI.VariableIndex
     coefficient::Float64
 end
-ModelAnalyzer.variable(issue::LargeObjectiveCoefficient, model) = issue.variable
+
+ModelAnalyzer.variable(issue::LargeObjectiveCoefficient) = issue.variable
+
 ModelAnalyzer.value(issue::LargeObjectiveCoefficient) = issue.coefficient
 
 """
@@ -281,12 +304,11 @@ struct SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
-function ModelAnalyzer.variables(
-    issue::SmallObjectiveQuadraticCoefficient,
-    model,
-)
+
+function ModelAnalyzer.variables(issue::SmallObjectiveQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
+
 function ModelAnalyzer.value(issue::SmallObjectiveQuadraticCoefficient)
     return issue.coefficient
 end
@@ -309,12 +331,13 @@ struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
+
 function ModelAnalyzer.variables(
     issue::LargeObjectiveQuadraticCoefficient,
-    model,
 )
     return [issue.variable1, issue.variable2]
 end
+
 function ModelAnalyzer.value(issue::LargeObjectiveQuadraticCoefficient)
     return issue.coefficient
 end
@@ -338,12 +361,15 @@ struct SmallMatrixQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
-function ModelAnalyzer.variables(issue::SmallMatrixQuadraticCoefficient, model)
+
+function ModelAnalyzer.variables(issue::SmallMatrixQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
-function ModelAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient, model)
+
+function ModelAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient)
     return issue.ref
 end
+
 ModelAnalyzer.value(issue::SmallMatrixQuadraticCoefficient) = issue.coefficient
 
 """
@@ -365,12 +391,15 @@ struct LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
     variable2::MOI.VariableIndex
     coefficient::Float64
 end
-function ModelAnalyzer.variables(issue::LargeMatrixQuadraticCoefficient, model)
+
+function ModelAnalyzer.variables(issue::LargeMatrixQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
-function ModelAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient, model)
+
+function ModelAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient)
     return issue.ref
 end
+
 ModelAnalyzer.value(issue::LargeMatrixQuadraticCoefficient) = issue.coefficient
 
 """
@@ -404,7 +433,7 @@ julia> ModelAnalyzer.summarize(
 struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
-ModelAnalyzer.constraint(issue::NonconvexQuadraticConstraint, model) = issue.ref
+ModelAnalyzer.constraint(issue::NonconvexQuadraticConstraint) = issue.ref
 
 """
     Data
