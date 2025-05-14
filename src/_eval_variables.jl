@@ -9,8 +9,6 @@ function _eval_variables(value_fn::Function, t::MOI.ScalarAffineTerm)
     return t.coefficient * value_fn(t.variable)
 end
 
-_eval_variables(value_fn::Function, f::MOI.VariableIndex) = value_fn(f)
-
 function _eval_variables(
     value_fn::Function,
     f::MOI.ScalarAffineFunction{T},

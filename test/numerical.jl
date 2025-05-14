@@ -192,6 +192,56 @@ function test_constraint_bounds_quad()
     return
 end
 
+function test_no_names()
+    model = Model()
+    set_string_names_on_creation(model, false)
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, 7y >= 3)
+    @constraint(model, z, 0.0 * y == 3)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    #
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    str = String(take!(buf))
+    #
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.EmptyConstraint,
+    )
+    @test length(ret) == 1
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    str = String(take!(buf))
+    return
+end
+
 function test_variable_not_in_constraints()
     model = Model()
     @variable(model, x)
@@ -209,24 +259,16 @@ function test_variable_not_in_constraints()
     @test ModelAnalyzer.variable(ret[], model) == x
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
-        buf,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
-    )
-    str = String(take!(buf))
-    @test startswith(str, "# `VariableNotInConstraints`")
-    ModelAnalyzer.summarize(
-        buf,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
-        verbose = false,
-    )
-    str = String(take!(buf))
-    @test str == "# VariableNotInConstraints"
-    #
     ModelAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
@@ -263,6 +305,12 @@ function test_empty_constraint_model()
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
