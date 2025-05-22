@@ -988,7 +988,94 @@ function test_empty_model()
     return
 end
 
-# TODO, test SDP and empty model
+function test_vector_functions()
+    model = Model()
+    @variable(model, x[1:3])
+    @constraint(model, c1, [1e-9 * x[1]] in Nonnegatives())
+    @constraint(model, c2, [1e+9 * x[1]] in Nonnegatives())
+    @constraint(model, c3, [x[2], x[1]] in Nonnegatives())
+    @constraint(model, c4, [-1e-9 * x[1] * x[1]] in Nonnegatives())
+    @constraint(model, c5, [1e+9 * x[1] * x[1]] in Nonnegatives())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 6
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallMatrixCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c1
+    @test ModelAnalyzer.variable(ret[], model) == x[1]
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeMatrixCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c2
+    @test ModelAnalyzer.variable(ret[], model) == x[1]
+    @test ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c4
+    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c5
+    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x[3]
+    return
+end
+
+function test_variable_interval()
+    model = Model()
+    @variable(model, x in MOI.Interval(1e-9, 1e+9))
+    @objective(model, Min, x)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 3
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    return
+end
 
 function test_many()
     model = Model()
