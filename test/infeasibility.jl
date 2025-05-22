@@ -481,6 +481,9 @@ function test_iis_interval_left()
     iis = ModelAnalyzer.constraints(ret[], model)
     @test length(iis) == 2
     @test Set(iis) == Set([c2, c1])
+    iis = ModelAnalyzer.constraints(ret[], JuMP.backend(model))
+    @test length(iis) == 2
+    @test Set(iis) == Set(JuMP.index.([c2, c1]))
     return
 end
 

@@ -143,18 +143,14 @@ Return the value associated to a particular issue. The value is a number
 with a different meaning depending on the type of issue. For example, for
 some numerical issues, it can be the coefficient value.
 """
-function value(issue::AbstractIssue, ::MOI.ModelLike)
-    return value(issue)
-end
+function value end
 
 """
     values(issue::AbstractIssue)
 
 Return the values associated to a particular issue.
 """
-function values(issue::AbstractIssue, ::MOI.ModelLike)
-    return values(issue)
-end
+function values end
 
 """
     variable(issue::AbstractIssue)
@@ -197,9 +193,7 @@ end
 
 Return the set associated to a particular issue.
 """
-function set(issue::AbstractIssue, ::MOI.ModelLike)
-    return set(issue)
-end
+function set end
 
 function _verbose_summarize end
 

@@ -367,6 +367,7 @@ function test_dense_constraint()
     )
     @test length(ret) == 1
     @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test ModelAnalyzer.constraint(ret[], JuMP.backend(model)) == JuMP.index(c)
     @test ModelAnalyzer.constraint(ret[], model) == c
     @test ModelAnalyzer.value(ret[]) == 10_000
     #
@@ -405,6 +406,7 @@ function test_small_matrix_coef()
     @test length(ret) == 1
     @test ModelAnalyzer.constraint(ret[], model) == c
     @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.variable(ret[], JuMP.backend(model)) == JuMP.index(x)
     @test ModelAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
@@ -713,6 +715,8 @@ function test_small_objective_coef_quad()
     )
     @test length(ret) == 1
     @test ModelAnalyzer.variables(ret[], model) == [x, x]
+    @test ModelAnalyzer.variables(ret[], JuMP.backend(model)) ==
+          JuMP.index.([x, x])
     @test_broken ModelAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
     #
     buf = IOBuffer()
