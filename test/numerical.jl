@@ -988,6 +988,53 @@ function test_empty_model()
     return
 end
 
+function test_nonconvex_zeros()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, [x[1] * x[1]] in Zeros())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    return
+end
+
+function test_vi_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, x[1] in MOI.ZeroOne())
+    @constraint(model, c2, 2x[1] == 0)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_saf_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, 2x[1] in MOI.ZeroOne())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_vaf_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, [2x[1], x[1], x[1]] in SecondOrderCone())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
 function test_vector_functions()
     model = Model()
     @variable(model, x[1:3])
@@ -996,8 +1043,9 @@ function test_vector_functions()
     @constraint(model, c3, [x[2], x[1]] in Nonnegatives())
     @constraint(model, c4, [-1e-9 * x[1] * x[1]] in Nonnegatives())
     @constraint(model, c5, [1e+9 * x[1] * x[1]] in Nonnegatives())
+    @constraint(model, c6, [2 * x[1] * x[1]] in Zeros())
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 6
     #
     ret = ModelAnalyzer.list_of_issues(
@@ -1050,7 +1098,7 @@ function test_variable_interval()
     @variable(model, x in MOI.Interval(1e-9, 1e+9))
     @objective(model, Min, x)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 3
     ret = ModelAnalyzer.list_of_issues(
         data,
