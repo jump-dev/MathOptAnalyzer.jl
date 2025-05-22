@@ -97,7 +97,12 @@ ModelAnalyzer.value(issue::DualConstraintViolation) = issue.violation
 The `DualConstrainedVariableViolation` issue is identified when a dual 
 constraint, which is a constrained varaible constraint, has a value
 that is not within the dual constraint's set.
-This dual constraint corresponds to a primal constraint.
+During the dualization  process, each primal constraint is mapped to a dual
+variable, this dual variable is tipically a constrained variable with the
+dual set of the primal constraint. If the primal constraint is a an equality
+type constraint, the dual variable is a free variable, hence, not constrained
+(dual) variable.
+This dual constraint corresponds to a primal (non-equality) constraint.
 
 For more information, run:
 ```julia
@@ -371,6 +376,11 @@ function ModelAnalyzer._verbose_summarize(
         A `DualConstrainedVariableViolation` issue is identified when a dual
         constraint, which is a constrained varaible constraint, has a value
         that is not within the dual constraint's set.
+        During the dualization  process, each primal constraint is mapped to a dual
+        variable, this dual variable is tipically a constrained variable with the
+        dual set of the primal constraint. If the primal constraint is a an equality
+        type constraint, the dual variable is a free variable, hence, not constrained
+        (dual) variable.
 
         ## Why
 
