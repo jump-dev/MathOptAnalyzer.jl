@@ -109,7 +109,7 @@ function test_only_bounds()
         ModelAnalyzer.Feasibility.PrimalDualMismatch,
     )
     @test ret[] == ModelAnalyzer.Feasibility.PrimalDualMismatch(-1.0, 0.0)
-    # @test ModelAnalyzer.values(ret[]) == [-1.0, 0.0]
+    @test ModelAnalyzer.values(ret[]) == [-1.0, 0.0]
 
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
@@ -715,6 +715,51 @@ function test_analyse_no_opt()
 
     ModelAnalyzer.summarize(buf, data, verbose = false)
 
+    return
+end
+
+function test_dual_constrained_variable()
+    model = Model()
+    @variable(model, x >= 0)
+    @objective(model, Min, x)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        dual_point = Dict(JuMP.index(LowerBoundRef(x)) => -1.0),
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test list == [
+        ModelAnalyzer.Feasibility.DualConstraintViolation,
+        ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
+        ModelAnalyzer.Feasibility.ComplemetarityViolation,
+        ModelAnalyzer.Feasibility.PrimalDualMismatch,
+    ]
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
+    )
+    @test ret[] == ModelAnalyzer.Feasibility.DualConstrainedVariableViolation(
+        JuMP.index(LowerBoundRef(x)),
+        1.0,
+    )
+    @test ModelAnalyzer.constraint(ret[], model) == LowerBoundRef(x)
+    @test ModelAnalyzer.value(ret[]) == 1.0
+
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
+        verbose = true,
+    )
+    ModelAnalyzer.summarize(
+        buf,
+        ModelAnalyzer.Feasibility.DualConstrainedVariableViolation,
+        verbose = false,
+    )
+    ModelAnalyzer.summarize(buf, ret[], verbose = true)
+    ModelAnalyzer.summarize(buf, ret[], verbose = false)
     return
 end
 
