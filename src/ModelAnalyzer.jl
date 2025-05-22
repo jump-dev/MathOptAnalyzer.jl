@@ -143,10 +143,6 @@ Return the value associated to a particular issue. The value is a number
 with a different meaning depending on the type of issue. For example, for
 some numerical issues, it can be the coefficient value.
 """
-function value(issue::AbstractIssue, ::Nothing)
-    return value(issue)
-end
-
 function value(issue::AbstractIssue, ::MOI.ModelLike)
     return value(issue)
 end
@@ -156,10 +152,6 @@ end
 
 Return the values associated to a particular issue.
 """
-function values(issue::AbstractIssue, ::Nothing)
-    return values(issue)
-end
-
 function values(issue::AbstractIssue, ::MOI.ModelLike)
     return values(issue)
 end
@@ -169,10 +161,6 @@ end
 
 Return the variable associated to a particular issue.
 """
-function variable(issue::AbstractIssue, ::Nothing)
-    return variable(issue)
-end
-
 function variable(issue::AbstractIssue, ::MOI.ModelLike)
     return variable(issue)
 end
@@ -182,10 +170,6 @@ end
 
 Return the variables associated to a particular issue.
 """
-function variables(issue::AbstractIssue, ::Nothing)
-    return variables(issue)
-end
-
 function variables(issue::AbstractIssue, ::MOI.ModelLike)
     return variables(issue)
 end
@@ -195,10 +179,6 @@ end
 
 Return the constraint associated to a particular issue.
 """
-function constraint(issue::AbstractIssue, ::Nothing)
-    return constraint(issue)
-end
-
 function constraint(issue::AbstractIssue, ::MOI.ModelLike)
     return constraint(issue)
 end
@@ -208,10 +188,6 @@ end
 
 Return the constraints associated to a particular issue.
 """
-function constraints(issue::AbstractIssue, ::Nothing)
-    return constraints(issue)
-end
-
 function constraints(issue::AbstractIssue, ::MOI.ModelLike)
     return constraints(issue)
 end
@@ -221,10 +197,6 @@ end
 
 Return the set associated to a particular issue.
 """
-function set(issue::AbstractIssue, ::Nothing)
-    return set(issue)
-end
-
 function set(issue::AbstractIssue, ::MOI.ModelLike)
     return set(issue)
 end
