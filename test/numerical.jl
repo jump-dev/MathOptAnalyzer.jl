@@ -218,7 +218,12 @@ function test_no_names()
     ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = JuMP.backend(model))
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
@@ -240,7 +245,12 @@ function test_no_names()
     ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = JuMP.backend(model))
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
@@ -274,7 +284,12 @@ function test_variable_not_in_constraints()
     ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = JuMP.backend(model))
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
@@ -319,7 +334,12 @@ function test_empty_constraint_model()
     ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = JuMP.backend(model))
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
