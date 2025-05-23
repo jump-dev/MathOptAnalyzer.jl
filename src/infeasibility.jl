@@ -404,9 +404,9 @@ function _fix_to_zero(model, variable::MOI.VariableIndex, ::Type{T}) where {T}
     if MOI.is_valid(model, lb_idx)
         MOI.delete(model, lb_idx)
         has_lower = true
-    # MOI.PenaltyRelaxation only creates variables with LB
-    # elseif MOI.is_valid(model, ub_idx)
-    #     MOI.delete(model, ub_idx)
+        # MOI.PenaltyRelaxation only creates variables with LB
+        # elseif MOI.is_valid(model, ub_idx)
+        #     MOI.delete(model, ub_idx)
     else
         error("Variable is not bounded")
     end
@@ -426,9 +426,9 @@ function _set_bound_zero(
     MOI.delete(model, eq_idx)
     if has_lower
         MOI.add_constraint(model, variable, MOI.GreaterThan{T}(zero(T)))
-    # MOI.PenaltyRelaxation only creates variables with LB
-    # else
-    #     MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
+        # MOI.PenaltyRelaxation only creates variables with LB
+        # else
+        #     MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
     end
     return
 end
