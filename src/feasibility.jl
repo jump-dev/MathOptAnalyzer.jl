@@ -1016,31 +1016,6 @@ function _dual_point_to_dual_model_ref(
             end
         end
     end
-    for (primal_con, val) in dual_point
-        dual_vars = Dualization._get_dual_variables(map, primal_con)
-        if length(dual_vars) != length(val)
-            error(
-                "The dual point entry for constraint $primal_con has " *
-                "length $(length(val)) but the dual variable " *
-                "length is $(length(dual_vars)).",
-            )
-        end
-        for (idx, dual_var) in enumerate(dual_vars)
-            new_dual_point[dual_var] = val[idx]
-            dual_var_to_primal_con[dual_var] = primal_con
-        end
-        dual_con = Dualization._get_dual_constraint(map, primal_con)
-        if dual_con !== nothing
-            dual_con_to_primal_con[dual_con] = primal_con
-            # else
-            #     if !(primal_con isa MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.EqualTo} ||
-            #         primal_con isa MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.Zeros}
-            #         SAF in EQ, etc...
-            #) 
-            #         error("Problem with dualization, see: $primal_con")
-            #     end
-        end
-    end
     primal_vars = MOI.get(primal_model, MOI.ListOfVariableIndices())
     dual_con_to_primal_vars =
         Dict{MOI.ConstraintIndex,Vector{MOI.VariableIndex}}()

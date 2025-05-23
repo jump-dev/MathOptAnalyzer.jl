@@ -822,6 +822,16 @@ function test_skip_missing_primal()
     )
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(y) => 1.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+        skip_missing = true,
+        dual_check = true,
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
     return
 end
 
