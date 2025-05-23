@@ -946,6 +946,42 @@ function test_dual_vector()
     return
 end
 
+function test_nl_con()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, x^3 == 0)
+    @objective(model, Min, x)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c1) => 0.0),
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_nl_obj()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, x == 0)
+    @objective(model, Min, x^3)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c1) => 0.0),
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
 end # module
 
 TestDualFeasibilityChecker.runtests()
