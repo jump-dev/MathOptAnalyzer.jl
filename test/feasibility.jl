@@ -830,7 +830,7 @@ function test_skip_missing_primal()
         skip_missing = true,
         dual_check = true,
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -888,7 +888,7 @@ function test_skip_missing_primal_empty_con()
         skip_missing = true,
         dual_check = true,
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -917,7 +917,7 @@ function test_skip_missing_dual()
         skip_missing = true,
         dual_check = true,
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -951,7 +951,7 @@ function test_dual_vector()
         primal_point = Dict(JuMP.index(x) => 0.5),
         dual_point = Dict(JuMP.index(c1) => [0.0, 0.5]),
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -969,7 +969,7 @@ function test_nl_con()
         primal_point = Dict(JuMP.index(x) => 0.0),
         dual_point = Dict(JuMP.index(c1) => 0.0),
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -987,7 +987,7 @@ function test_nl_obj()
         primal_point = Dict(JuMP.index(x) => 0.0),
         dual_point = Dict(JuMP.index(c1) => 0.0),
     )
-    @show list = ModelAnalyzer.list_of_issue_types(data)
+    list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end

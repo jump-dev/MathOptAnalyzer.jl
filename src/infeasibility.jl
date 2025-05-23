@@ -293,15 +293,16 @@ function ModelAnalyzer.analyze(
         func = MOI.get(model, MOI.ConstraintFunction(), con)
         failed = false
         interval = _eval_variables(func) do var_idx
-            if !haskey(variables, var_idx)
-                failed = true
-                return Interval(-Inf, Inf)
-            end
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
             return variables[var_idx]
         end
-        if failed
-            continue
-        end
+        # if failed
+        #     continue
+        # end
         rhs = set.value
         if interval.lo > rhs || interval.hi < rhs
             push!(
@@ -323,15 +324,16 @@ function ModelAnalyzer.analyze(
         func = MOI.get(model, MOI.ConstraintFunction(), con)
         failed = false
         interval = _eval_variables(func) do var_idx
-            if !haskey(variables, var_idx)
-                failed = true
-                return Interval(-Inf, Inf)
-            end
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
             return variables[var_idx]
         end
-        if failed
-            continue
-        end
+        # if failed
+        #     continue
+        # end
         rhs = set.upper
         if interval.lo > rhs
             push!(
@@ -353,15 +355,16 @@ function ModelAnalyzer.analyze(
         func = MOI.get(model, MOI.ConstraintFunction(), con)
         failed = false
         interval = _eval_variables(func) do var_idx
-            if !haskey(variables, var_idx)
-                failed = true
-                return Interval(-Inf, Inf)
-            end
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
             return variables[var_idx]
         end
-        if failed
-            continue
-        end
+        # if failed
+        #     continue
+        # end
         rhs = set.lower
         if interval.hi < rhs
             push!(
@@ -401,8 +404,9 @@ function _fix_to_zero(model, variable::MOI.VariableIndex, ::Type{T}) where {T}
     if MOI.is_valid(model, lb_idx)
         MOI.delete(model, lb_idx)
         has_lower = true
-    elseif MOI.is_valid(model, ub_idx)
-        MOI.delete(model, ub_idx)
+    # MOI.PenaltyRelaxation only creates variables with LB
+    # elseif MOI.is_valid(model, ub_idx)
+    #     MOI.delete(model, ub_idx)
     else
         error("Variable is not bounded")
     end
@@ -422,8 +426,9 @@ function _set_bound_zero(
     MOI.delete(model, eq_idx)
     if has_lower
         MOI.add_constraint(model, variable, MOI.GreaterThan{T}(zero(T)))
-    else
-        MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
+    # MOI.PenaltyRelaxation only creates variables with LB
+    # else
+    #     MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
     end
     return
 end
@@ -479,6 +484,7 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
                 if value1 > tolerance && value2 > tolerance
                     error("IIS failed due numerical instability")
                 elseif value1 > tolerance
+                    # TODO: coef is alwayas 1.0
                     has_lower = _fix_to_zero(model, var1, T)
                     delete!(constraint_to_affine, con)
                     constraint_to_affine[con] = coef2 * var2

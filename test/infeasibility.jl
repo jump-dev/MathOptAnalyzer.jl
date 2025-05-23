@@ -311,6 +311,23 @@ function test_range_equalto_3()
     return
 end
 
+function test_interval()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x in MOI.Interval(0, 10))
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+end
+
 function test_iis_feasible()
     model = Model(HiGHS.Optimizer)
     set_silent(model)
