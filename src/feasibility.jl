@@ -983,6 +983,39 @@ function _dual_point_to_dual_model_ref(
     new_dual_point = Dict{MOI.VariableIndex,Number}()
     dual_var_to_primal_con = Dict{MOI.VariableIndex,MOI.ConstraintIndex}()
     dual_con_to_primal_con = Dict{MOI.ConstraintIndex,MOI.ConstraintIndex}()
+    for (F, S) in MOI.get(primal_model, MOI.ListOfConstraintTypesPresent())
+        list = MOI.get(primal_model, MOI.ListOfConstraintIndices{F,S}())
+        for primal_con in list
+            dual_vars = Dualization._get_dual_variables(map, primal_con)
+            val = get(dual_point, primal_con, nothing)
+            if !isnothing(val)
+                if length(dual_vars) != length(val)
+                    error(
+                        "The dual point entry for constraint $primal_con has " *
+                        "length $(length(val)) but the dual variable " *
+                        "length is $(length(dual_vars)).",
+                    )
+                end
+                for (idx, dual_var) in enumerate(dual_vars)
+                    new_dual_point[dual_var] = val[idx]
+                end
+            end
+            for dual_var in dual_vars
+                dual_var_to_primal_con[dual_var] = primal_con
+            end
+            dual_con = Dualization._get_dual_constraint(map, primal_con)
+            if dual_con !== nothing
+                dual_con_to_primal_con[dual_con] = primal_con
+                # else
+                #     if !(primal_con isa MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.EqualTo} ||
+                #         primal_con isa MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.Zeros}
+                #         SAF in EQ, etc...
+                #) 
+                #         error("Problem with dualization, see: $primal_con")
+                #     end
+            end
+        end
+    end
     for (primal_con, val) in dual_point
         dual_vars = Dualization._get_dual_variables(map, primal_con)
         if length(dual_vars) != length(val)
@@ -1247,7 +1280,9 @@ function _analyze_objectives!(model::MOI.ModelLike, dual_model, map, data)
             )
         end
 
-        if !isapprox(obj_val, dual_obj_val; atol = data.atol)
+        if !isapprox(obj_val, dual_obj_val; atol = data.atol) &&
+           !isnan(dual_obj_val) &&
+           !isnan(obj_val)
             push!(
                 data.primal_dual_mismatch,
                 PrimalDualMismatch(obj_val, dual_obj_val),

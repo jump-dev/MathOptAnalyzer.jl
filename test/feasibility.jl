@@ -796,6 +796,156 @@ function test_lowlevel_mismatch()
     return
 end
 
+function test_skip_missing_primal()
+    model = Model()
+    set_silent(model)
+    @variable(model, x >= 0)
+    @variable(model, y >= 0)
+    @constraint(model, c, x + y >= 0)
+    @objective(model, Min, x)
+
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        # dual_point = Dict(JuMP.index(c) => 1.0),
+        skip_missing = false,
+        dual_check = false,
+    )
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 1.0),
+        # dual_point = Dict(JuMP.index(c) => 1.0),
+        skip_missing = true,
+        dual_check = false,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_skip_missing_primal_var_not_in_con()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c, x >= 0)
+    @objective(model, Min, x + y)
+
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        # dual_point = Dict(JuMP.index(c) => 1.0),
+        skip_missing = false,
+        dual_check = false,
+    )
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        # dual_point = Dict(JuMP.index(c) => 1.0),
+        skip_missing = true,
+        dual_check = false,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_skip_missing_primal_empty_con()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c, 1 >= 0)
+    @constraint(model, c2, x >= 0)
+    @objective(model, Min, x)
+
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c2) => 1.0),
+        skip_missing = false,
+        dual_check = true,
+    )
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c2) => 1.0),
+        skip_missing = true,
+        dual_check = true,
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_skip_missing_dual()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, x >= 0)
+    @constraint(model, c2, x >= 2)
+    @objective(model, Min, x)
+
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 2.0),
+        dual_point = Dict(JuMP.index(c1) => 1.0),
+        skip_missing = false,
+        dual_check = true,
+    )
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 2.0),
+        dual_point = Dict(JuMP.index(c1) => 0.0),
+        skip_missing = true,
+        dual_check = true,
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_dual_bad_size()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, x >= 0)
+    @objective(model, Min, x)
+
+    @test_throws ErrorException ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 2.0),
+        dual_point = Dict(JuMP.index(c1) => [1.0, 2.0]),
+    )
+    return
+end
+
+function test_dual_vector()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, [x, 2x - 1] in Nonnegatives())
+    @objective(model, Min, x)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.5),
+        dual_point = Dict(JuMP.index(c1) => [0.0, 0.5]),
+    )
+    @show list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
 end # module
 
 TestDualFeasibilityChecker.runtests()
