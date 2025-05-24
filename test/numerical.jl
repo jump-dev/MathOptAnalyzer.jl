@@ -192,6 +192,22 @@ function test_constraint_bounds_quad()
     return
 end
 
+function test_constraint_bounds_quad()
+    model = Model()
+    @variable(model, x)
+    @constraint(model, c, [-x^2 - 3] in MOI.Nonpositives(1))
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    return
+end
+
 function test_no_names()
     model = Model()
     set_string_names_on_creation(model, false)
@@ -1044,10 +1060,27 @@ function test_vi_in_nonstandard_set()
     model = Model()
     @variable(model, x[1:1])
     @constraint(model, c, x[1] in MOI.ZeroOne())
-    @constraint(model, c2, 2x[1] == 0)
+    @constraint(model, c1, 3x[1] + 1e-9 in MOI.ZeroOne())
+    @constraint(model, c2, 4x[1] - 1e+9 in MOI.ZeroOne())
+    @constraint(model, c3, 2x[1] == 0)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
-    @test length(list) == 0
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c1
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c2
+    @test ModelAnalyzer.value(ret[]) == -1e+9
     return
 end
 
