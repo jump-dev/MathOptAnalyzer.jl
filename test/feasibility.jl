@@ -956,6 +956,80 @@ function test_dual_vector()
     return
 end
 
+function test_feasibility_sense()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c1, x >= 0)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        # dual_point = Dict(JuMP.index(c1) => [0.0, 0.5]),
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_objective()
+    model = Model()
+    set_silent(model)
+    @variable(model, x)
+    @constraint(model, c, x >= 0)
+    @objective(model, Min, x)
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+        primal_objective = 0.0,
+        dual_objective = 0.0,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+        primal_objective = 1.0,
+        dual_objective = 0.0,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    @test ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Feasibility.PrimalObjectiveMismatch,
+    )[] == ModelAnalyzer.Feasibility.PrimalObjectiveMismatch(0.0, 1.0)
+    @test ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Feasibility.PrimalDualSolverMismatch,
+    )[] == ModelAnalyzer.Feasibility.PrimalDualSolverMismatch(1.0, 0.0)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Feasibility.Analyzer(),
+        model,
+        primal_point = Dict(JuMP.index(x) => 0.0),
+        dual_point = Dict(JuMP.index(c) => 1.0),
+        primal_objective = 0.0,
+        dual_objective = 1.0,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    @test ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Feasibility.DualObjectiveMismatch,
+    )[] == ModelAnalyzer.Feasibility.DualObjectiveMismatch(0.0, 1.0)
+    @test ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Feasibility.PrimalDualSolverMismatch,
+    )[] == ModelAnalyzer.Feasibility.PrimalDualSolverMismatch(0.0, 1.0)
+    return
+end
+
 function test_nl_con()
     model = Model()
     set_silent(model)

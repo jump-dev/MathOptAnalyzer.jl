@@ -23,6 +23,8 @@ julia> data = ModelAnalyzer.analyze(
     model;
     primal_point::Union{Nothing, Dict} = nothing,
     dual_point::Union{Nothing, Dict} = nothing,
+    primal_objective::Union{Nothing, Float64} = nothing,
+    dual_objective::Union{Nothing, Float64} = nothing,
     atol::Float64 = 1e-6,
     skip_missing::Bool = false,
     dual_check = true,
@@ -35,11 +37,18 @@ The additional parameters:
 - `dual_point`: The dual solution point to use for feasibility checking.
   If `nothing` and the model can be dualized, it will use the current dual
   solution from the model.
+- `primal_objective`: The primal objective value considered as the solver
+  objective. If `nothing`, it will use the current primal objective value from
+  the model (solver).
+- `dual_objective`: The dual objective value considered as the solver
+  objective. If `nothing`, it will use the current dual objective value from
+  the model (solver).
 - `atol`: The absolute tolerance for feasibility checking.
 - `skip_missing`: If `true`, constraints with missing variables in the provided
   point will be ignored.
 - `dual_check`: If `true`, it will perform dual feasibility checking. Disabling
-  the dual check will also disable complementarity checking.
+  the dual check will also disable complementarity checking and dual objective
+  checks.
 """
 struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 
@@ -228,6 +237,8 @@ Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
     # analysis configuration
     primal_point::Union{Nothing,AbstractDict}
     dual_point::Union{Nothing,AbstractDict}
+    primal_objective::Union{Nothing,Float64}
+    dual_objective::Union{Nothing,Float64}
     atol::Float64
     skip_missing::Bool
     dual_check::Bool
@@ -878,6 +889,8 @@ function ModelAnalyzer.analyze(
     model::MOI.ModelLike;
     primal_point = nothing,
     dual_point = nothing,
+    primal_objective::Union{Nothing,Float64} = nothing,
+    dual_objective::Union{Nothing,Float64} = nothing,
     atol::Float64 = 1e-6,
     skip_missing::Bool = false,
     dual_check = true,
@@ -896,6 +909,8 @@ function ModelAnalyzer.analyze(
     data = Data(
         primal_point = primal_point,
         dual_point = dual_point,
+        primal_objective = primal_objective,
+        dual_objective = dual_objective,
         atol = atol,
         skip_missing = skip_missing,
         dual_check = dual_check,
@@ -1021,14 +1036,16 @@ function _dual_point_to_dual_model_ref(
         Dict{MOI.ConstraintIndex,Vector{MOI.VariableIndex}}()
     for primal_var in primal_vars
         dual_con, idx = Dualization._get_dual_constraint(map, primal_var)
-        # TODO
+        @assert idx == -1
         idx = max(idx, 1)
         if haskey(dual_con_to_primal_vars, dual_con)
-            vec = dual_con_to_primal_vars[dual_con]
-            if idx > length(vec)
-                resize!(vec, idx)
-            end
-            vec[idx] = primal_var
+            # TODO: this should never be hit because there will be no primal
+            #       constrained variables.
+            # vec = dual_con_to_primal_vars[dual_con]
+            # if idx > length(vec)
+            #     resize!(vec, idx)
+            # end
+            # vec[idx] = primal_var
         else
             vec = Vector{MOI.VariableIndex}(undef, idx)
             vec[idx] = primal_var
@@ -1076,13 +1093,9 @@ function _analyze_dual!(model, dual_model, map, data)
             if dist > data.atol
                 if haskey(dual_con_to_primal_vars, con)
                     vars = dual_con_to_primal_vars[con]
-                    if length(vars) != 1
-                        # TODO improve error
-                        error(
-                            "The dual constraint $con has " *
-                            "length $(length(vars)) != 1",
-                        )
-                    end
+                    # TODO: this must be true because we dont consider
+                    #       constrained variables in the dualization.
+                    @assert length(vars) == 1
                     push!(data.dual, DualConstraintViolation(vars[], dist))
                 else
                     con = dual_con_to_primal_con[con]
@@ -1180,13 +1193,17 @@ end
 function _analyze_objectives!(model::MOI.ModelLike, dual_model, map, data)
     primal_status = MOI.get(model, MOI.PrimalStatus())
     dual_status = MOI.get(model, MOI.DualStatus())
-    if primal_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
+    if data.primal_objective !== nothing
+        obj_val_solver = data.primal_objective
+    elseif primal_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
         obj_val_solver = MOI.get(model, MOI.ObjectiveValue())
     else
         obj_val_solver = nothing
     end
 
-    if dual_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
+    if data.dual_objective !== nothing
+        dual_obj_val_solver = data.dual_objective
+    elseif dual_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
         dual_obj_val_solver = MOI.get(model, MOI.DualObjectiveValue())
     else
         dual_obj_val_solver = nothing
