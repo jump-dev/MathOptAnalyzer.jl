@@ -54,12 +54,17 @@ struct Interval{T}
     lo::T
     hi::T
 end
+
 function Interval(lo::T, hi::T) where {T<:Real}
     # if hi < lo <= hi + eps(T)
     #     lo = hi
     # end
     @assert lo <= hi
     return Interval{T}(lo, hi)
+end
+
+function Base.zero(::Type{Interval{T}}) where {T<:Real}
+    return Interval(zero(T), zero(T))
 end
 
 function Base.iszero(a::Interval)

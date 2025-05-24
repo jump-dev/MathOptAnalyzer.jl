@@ -32,8 +32,13 @@ function test_bounds()
     @test length(list) == 1
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
-    @test ret[] ==
-          ModelAnalyzer.Infeasibility.InfeasibleBounds{Float64}(y, 2.0, 1.0)
+    @test ret[] == ModelAnalyzer.Infeasibility.InfeasibleBounds{Float64}(
+        JuMP.index(y),
+        2.0,
+        1.0,
+    )
+    @test ModelAnalyzer.variable(ret[], model) == y
+    @test ModelAnalyzer.values(ret[]) == [2.0, 1.0]
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -74,11 +79,14 @@ function test_integrality()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test ret[] == ModelAnalyzer.Infeasibility.InfeasibleIntegrality{Float64}(
-        y,
+        JuMP.index(y),
         2.2,
         2.9,
         MOI.Integer(),
     )
+    @test ModelAnalyzer.variable(ret[], model) == y
+    @test ModelAnalyzer.values(ret[]) == [2.2, 2.9]
+    @test ModelAnalyzer.set(ret[]) == MOI.Integer()
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -121,11 +129,14 @@ function test_binary()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test ret[] == ModelAnalyzer.Infeasibility.InfeasibleIntegrality{Float64}(
-        x,
+        JuMP.index(x),
         0.5,
         0.8,
         MOI.ZeroOne(),
     )
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.values(ret[]) == [0.5, 0.8]
+    @test ModelAnalyzer.set(ret[]) == MOI.ZeroOne()
     return
 end
 
@@ -142,11 +153,14 @@ function test_range()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         11.0,
         22.0,
         MOI.LessThan{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.LessThan{Float64}(1.0)
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -190,11 +204,14 @@ function test_range_neg()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         11.0,
         22.0,
         MOI.LessThan{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.LessThan{Float64}(1.0)
     return
 end
 
@@ -211,11 +228,14 @@ function test_range_equalto()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         3.0,
         3.0,
         MOI.EqualTo{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [3.0, 3.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(1.0)
     return
 end
 
@@ -232,11 +252,14 @@ function test_range_equalto_2()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         7.0,
         7.0,
         MOI.EqualTo{Float64}(1.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [7.0, 7.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(1.0)
     return
 end
 
@@ -253,11 +276,14 @@ function test_range_greaterthan()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         11.0,
         22.0,
         MOI.GreaterThan{Float64}(100.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.GreaterThan{Float64}(100.0)
     return
 end
 
@@ -274,12 +300,32 @@ function test_range_equalto_3()
     @test length(ret) == 1
     @test ret[] ==
           ModelAnalyzer.Infeasibility.InfeasibleConstraintRange{Float64}(
-        c,
+        JuMP.index(c),
         11.0,
         22.0,
         MOI.EqualTo{Float64}(100.0),
     )
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.values(ret[]) == [11.0, 22.0]
+    @test ModelAnalyzer.set(ret[]) == MOI.EqualTo{Float64}(100.0)
     return
+end
+
+function test_interval()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x in MOI.Interval(0, 10))
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
 end
 
 function test_iis_feasible()
@@ -321,7 +367,11 @@ function test_iis()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -381,8 +431,13 @@ function test_iis_multiple()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test c2 in Set([ret[].constraint[1], ret[].constraint[2]])
-    @test Set([ret[].constraint[1], ret[].constraint[2]]) ⊆ Set([c3, c2, c1])
+    @test JuMP.index(c2) in Set([ret[].constraint[1], ret[].constraint[2]])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ⊆
+          Set(JuMP.index.([c3, c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) ⊆ Set([c3, c2, c1])
+    @test c2 in iis
     return
 end
 
@@ -408,7 +463,11 @@ function test_iis_interval_right()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 
@@ -434,7 +493,14 @@ function test_iis_interval_left()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
+    iis = ModelAnalyzer.constraints(ret[], JuMP.backend(model))
+    @test length(iis) == 2
+    @test Set(iis) == Set(JuMP.index.([c2, c1]))
     return
 end
 
@@ -463,7 +529,11 @@ function test_iis_spare()
     ret = ModelAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test length(ret[].constraint) == 2
-    @test Set([ret[].constraint[1], ret[].constraint[2]]) == Set([c2, c1])
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 

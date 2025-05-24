@@ -82,21 +82,22 @@ function test_constraint_bounds()
     @constraint(model, x == 4e+13)
     @constraint(model, x <= 1e-14)
     @constraint(model, x <= 1e+15)
+    @constraint(model, [x] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e-16] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e+17] in MOI.Nonnegatives(1))
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
-    @test length(list) == 4
+    @test length(list) == 3
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.VariableBoundAsConstraint,
     )
-    @test length(ret) == 8
+    @test length(ret) == 6
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.VariableNotInConstraints,
     )
-    @test length(ret) == 1
+    @test length(ret) == 0
     ret = ModelAnalyzer.list_of_issues(
         data,
         ModelAnalyzer.Numerical.SmallRHSCoefficient,
@@ -191,6 +192,88 @@ function test_constraint_bounds_quad()
     return
 end
 
+function test_constraint_bounds_quad()
+    model = Model()
+    @variable(model, x)
+    @constraint(model, c, [-x^2 - 3] in MOI.Nonpositives(1))
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    return
+end
+
+function test_no_names()
+    model = Model()
+    set_string_names_on_creation(model, false)
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, 7y >= 3)
+    @constraint(model, z, 0.0 * y == 3)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    #
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    str = String(take!(buf))
+    #
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.EmptyConstraint,
+    )
+    @test length(ret) == 1
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    str = String(take!(buf))
+    return
+end
+
 function test_variable_not_in_constraints()
     model = Model()
     @variable(model, x)
@@ -204,26 +287,28 @@ function test_variable_not_in_constraints()
         ModelAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[]) == JuMP.index(x)
+    @test ModelAnalyzer.variable(ret[], model) == x
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
-        buf,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
-    )
-    str = String(take!(buf))
-    @test startswith(str, "# `VariableNotInConstraints`")
-    ModelAnalyzer.summarize(
-        buf,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
-        verbose = false,
-    )
-    str = String(take!(buf))
-    @test str == "# VariableNotInConstraints"
-    #
     ModelAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
+    str = String(take!(buf))
+    @test startswith(str, "Variable: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
@@ -231,8 +316,8 @@ end
 function test_empty_constraint_model()
     model = Model()
     @variable(model, x)
-    @constraint(model, 2 * x == 5)
-    @constraint(model, 0.0 * x == 3)
+    @constraint(model, c1, 2 * x == 5)
+    @constraint(model, c2, 0.0 * x == 3)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -241,6 +326,8 @@ function test_empty_constraint_model()
         ModelAnalyzer.Numerical.EmptyConstraint,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c2)
+    @test ModelAnalyzer.constraint(ret[], model) == c2
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.EmptyConstraint)
@@ -259,13 +346,27 @@ function test_empty_constraint_model()
     @test startswith(str, "Constraint: ")
     ModelAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
+    #
+    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(
+        buf,
+        ret[1],
+        verbose = true,
+        model = JuMP.backend(model),
+    )
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    str = String(take!(buf))
     return
 end
 
 function test_variable_bound_as_constraint()
     model = Model()
     @variable(model, x)
-    @constraint(model, x <= 2)
+    @constraint(model, c, x <= 2)
     @constraint(model, 3x <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
@@ -275,6 +376,8 @@ function test_variable_bound_as_constraint()
         ModelAnalyzer.Numerical.VariableBoundAsConstraint,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test ModelAnalyzer.constraint(ret[], model) == c
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -302,7 +405,7 @@ end
 function test_dense_constraint()
     model = Model()
     @variable(model, x[1:10_000] <= 1)
-    @constraint(model, sum(x) <= 4)
+    @constraint(model, c, sum(x) <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -311,6 +414,10 @@ function test_dense_constraint()
         ModelAnalyzer.Numerical.DenseConstraint,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test ModelAnalyzer.constraint(ret[], JuMP.backend(model)) == JuMP.index(c)
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 10_000
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.DenseConstraint)
@@ -336,7 +443,7 @@ end
 function test_small_matrix_coef()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 1e-9 * x <= 4)
+    @constraint(model, c, 1e-9 * x <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -345,6 +452,10 @@ function test_small_matrix_coef()
         ModelAnalyzer.Numerical.SmallMatrixCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.variable(ret[], JuMP.backend(model)) == JuMP.index(x)
+    @test ModelAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallMatrixCoefficient)
@@ -372,7 +483,7 @@ end
 function test_large_matrix_coef()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 1e+9 * x <= 4)
+    @constraint(model, c, 1e+9 * x <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -381,6 +492,9 @@ function test_large_matrix_coef()
         ModelAnalyzer.Numerical.LargeMatrixCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeMatrixCoefficient)
@@ -417,6 +531,8 @@ function test_small_bound_coef()
         ModelAnalyzer.Numerical.SmallBoundCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallBoundCoefficient)
@@ -452,6 +568,8 @@ function test_large_bound_coef()
         ModelAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeBoundCoefficient)
@@ -478,7 +596,7 @@ end
 function test_small_rhs_coef()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 3 * x <= 1e-9)
+    @constraint(model, c, 3 * x <= 1e-9)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -487,6 +605,8 @@ function test_small_rhs_coef()
         ModelAnalyzer.Numerical.SmallRHSCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
@@ -513,7 +633,7 @@ end
 function test_large_rhs_coef()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 3 * x <= 1e+9)
+    @constraint(model, c, 3 * x <= 1e+9)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -522,6 +642,8 @@ function test_large_rhs_coef()
         ModelAnalyzer.Numerical.LargeRHSCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test ModelAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
@@ -558,6 +680,8 @@ function test_small_objective_coef()
         ModelAnalyzer.Numerical.SmallObjectiveCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -597,6 +721,8 @@ function test_large_objective_coef()
         ModelAnalyzer.Numerical.LargeObjectiveCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -636,6 +762,10 @@ function test_small_objective_coef_quad()
         ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variables(ret[], model) == [x, x]
+    @test ModelAnalyzer.variables(ret[], JuMP.backend(model)) ==
+          JuMP.index.([x, x])
+    @test_broken ModelAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -676,6 +806,8 @@ function test_large_objective_coef_quad()
         ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variables(ret[], model) == [x, x]
+    @test_broken ModelAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -706,7 +838,7 @@ end
 function test_small_matrix_coef_quad()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 1e-9 * x^2 + x <= 4)
+    @constraint(model, c, 1e-9 * x^2 + x <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -715,6 +847,9 @@ function test_small_matrix_coef_quad()
         ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variables(ret[], model) == [x, x]
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test_broken ModelAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -745,7 +880,7 @@ end
 function test_large_matrix_coef_quad()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, 1e+9 * x^2 <= 4)
+    @constraint(model, c, 1e+9 * x^2 <= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -754,6 +889,9 @@ function test_large_matrix_coef_quad()
         ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.variables(ret[], model) == [x, x]
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test_broken ModelAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -860,7 +998,7 @@ end
 function test_constraint_nonconvex()
     model = Model()
     @variable(model, x <= 1)
-    @constraint(model, x^2 >= 4)
+    @constraint(model, c, x^2 >= 4)
     data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
     list = ModelAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
@@ -869,6 +1007,7 @@ function test_constraint_nonconvex()
         ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
     )
     @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
     #
     buf = IOBuffer()
     ModelAnalyzer.summarize(
@@ -901,7 +1040,159 @@ function test_empty_model()
     return
 end
 
-# TODO, test SDP and empty model
+function test_nonconvex_zeros()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, [x[1] * x[1]] in Zeros())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c
+    return
+end
+
+function test_vi_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, x[1] in MOI.ZeroOne())
+    @constraint(model, c1, 3x[1] + 1e-9 in MOI.ZeroOne())
+    @constraint(model, c2, 4x[1] - 1e+9 in MOI.ZeroOne())
+    @constraint(model, c3, 2x[1] == 0)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c1
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c2
+    @test ModelAnalyzer.value(ret[]) == -1e+9
+    return
+end
+
+function test_saf_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, 2x[1] in MOI.ZeroOne())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_vaf_in_nonstandard_set()
+    model = Model()
+    @variable(model, x[1:1])
+    @constraint(model, c, [2x[1], x[1], x[1]] in SecondOrderCone())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_vector_functions()
+    model = Model()
+    @variable(model, x[1:3])
+    @constraint(model, c1, [1e-9 * x[1]] in Nonnegatives())
+    @constraint(model, c2, [1e+9 * x[1]] in Nonnegatives())
+    @constraint(model, c3, [x[2], x[1]] in Nonnegatives())
+    @constraint(model, c4, [-1e-9 * x[1] * x[1]] in Nonnegatives())
+    @constraint(model, c5, [1e+9 * x[1] * x[1]] in Nonnegatives())
+    @constraint(model, c6, [2 * x[1] * x[1]] in Zeros())
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 6
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallMatrixCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c1
+    @test ModelAnalyzer.variable(ret[], model) == x[1]
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeMatrixCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c2
+    @test ModelAnalyzer.variable(ret[], model) == x[1]
+    @test ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c4
+    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.constraint(ret[], model) == c5
+    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x[3]
+    return
+end
+
+function test_variable_interval()
+    model = Model()
+    @variable(model, x in MOI.Interval(1e-9, 1e+9))
+    @objective(model, Min, x)
+    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 3
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e-9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    @test ModelAnalyzer.value(ret[]) == 1e+9
+    #
+    ret = ModelAnalyzer.list_of_issues(
+        data,
+        ModelAnalyzer.Numerical.VariableNotInConstraints,
+    )
+    @test length(ret) == 1
+    @test ModelAnalyzer.variable(ret[], model) == x
+    return
+end
 
 function test_many()
     model = Model()

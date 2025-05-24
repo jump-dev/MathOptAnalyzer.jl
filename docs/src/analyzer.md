@@ -22,3 +22,15 @@ and summarize them individually. The following functions are useful for this:
 ModelAnalyzer.list_of_issue_types
 ModelAnalyzer.list_of_issues
 ```
+
+It is possible to extract data from the issues with the methods:
+
+```@docs
+ModelAnalyzer.variables
+ModelAnalyzer.variable
+ModelAnalyzer.constraints
+ModelAnalyzer.constraint
+ModelAnalyzer.set
+ModelAnalyzer.values
+ModelAnalyzer.value
+```

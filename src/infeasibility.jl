@@ -6,15 +6,15 @@
 module Infeasibility
 
 import ModelAnalyzer
-import JuMP
-import JuMP.MOI as MOI
+import MathOptInterface as MOI
 
 include("intervals.jl")
+include("_eval_variables.jl")
 
 """
     Analyzer() <: ModelAnalyzer.AbstractAnalyzer
 
-The `Analyzer` type is used to perform infeasibility analysis on a JuMP model.
+The `Analyzer` type is used to perform infeasibility analysis on a model.
 
 ## Example
 ```julia
@@ -33,7 +33,7 @@ struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 """
     AbstractInfeasibilitylIssue
 
-Abstract type for infeasibility issues found during the analysis of a JuMP
+Abstract type for infeasibility issues found during the analysis of a
 model.
 """
 abstract type AbstractInfeasibilitylIssue <: ModelAnalyzer.AbstractIssue end
@@ -50,10 +50,14 @@ julia> ModelAnalyzer.summarize(ModelAnalyzer.Infeasibility.InfeasibleBounds)
 ````
 """
 struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
-    variable::JuMP.VariableRef
+    variable::MOI.VariableIndex
     lb::T
     ub::T
 end
+
+ModelAnalyzer.variable(issue::InfeasibleBounds) = issue.variable
+
+ModelAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
 
 """
     InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
@@ -71,11 +75,17 @@ julia> ModelAnalyzer.summarize(
 ```
 """
 struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
-    variable::JuMP.VariableRef
+    variable::MOI.VariableIndex
     lb::T
     ub::T
     set::Union{MOI.Integer,MOI.ZeroOne}#, MOI.Semicontinuous{T}, MOI.Semiinteger{T}}
 end
+
+ModelAnalyzer.variable(issue::InfeasibleIntegrality) = issue.variable
+
+ModelAnalyzer.values(issue::InfeasibleIntegrality) = [issue.lb, issue.ub]
+
+ModelAnalyzer.set(issue::InfeasibleIntegrality) = issue.set
 
 """
     InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
@@ -95,11 +105,17 @@ julia> ModelAnalyzer.summarize(
 ```
 """
 struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
-    constraint::JuMP.ConstraintRef
+    constraint::MOI.ConstraintIndex
     lb::T
     ub::T
     set::Union{MOI.EqualTo{T},MOI.LessThan{T},MOI.GreaterThan{T}}
 end
+
+ModelAnalyzer.constraint(issue::InfeasibleConstraintRange) = issue.constraint
+
+ModelAnalyzer.values(issue::InfeasibleConstraintRange) = [issue.lb, issue.ub]
+
+ModelAnalyzer.set(issue::InfeasibleConstraintRange) = issue.set
 
 """
     IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
@@ -118,8 +134,10 @@ julia> ModelAnalyzer.summarize(
 ```
 """
 struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
-    constraint::Vector{JuMP.ConstraintRef}
+    constraint::Vector{<:MOI.ConstraintIndex}
 end
+
+ModelAnalyzer.constraints(issue::IrreducibleInfeasibleSubset) = issue.constraint
 
 """
     Data <: ModelAnalyzer.AbstractData
@@ -142,55 +160,119 @@ end
 
 function ModelAnalyzer.analyze(
     ::Analyzer,
-    model::JuMP.GenericModel{T};
+    model::MOI.ModelLike;
     optimizer = nothing,
-) where {T}
+)
     out = Data()
 
-    variables = Dict{JuMP.VariableRef,Interval{T}}()
+    T = Float64
 
-    # first layer of infeasibility analysis is bounds consistency
+    variables = Dict{MOI.VariableIndex,Interval{T}}()
+
+    variable_indices = MOI.get(model, MOI.ListOfVariableIndices())
+
+    lb = Dict{MOI.VariableIndex,T}()
+    ub = Dict{MOI.VariableIndex,T}()
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.EqualTo{T}}(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        lb[func] = set.value
+        ub[func] = set.value
+    end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.LessThan{T}}(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        # lb[func] = -Inf
+        ub[func] = set.upper
+    end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.GreaterThan{T}}(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        lb[func] = set.lower
+        # ub[func] = Inf
+    end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.Interval{T}}(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        lb[func] = set.lower
+        ub[func] = set.upper
+    end
+
+    # for con in MOI.get(model, MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.SemiContinuous{T}}())
+    #     set = MOI.get(model, MOI.ConstraintSet(), con)
+    #     func = MOI.get(model, MOI.ConstraintFunction(), con)
+    #     lb[func] = 0 # set.lower
+    #     ub[func] = set.upper
+    # end
+
+    # for con in MOI.get(model, MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.SemiInteger{T}}())
+    #     set = MOI.get(model, MOI.ConstraintSet(), con)
+    #     func = MOI.get(model, MOI.ConstraintFunction(), con)
+    #     lb[func] = 0 #set.lower
+    #     ub[func] = set.upper
+    # end
+
     bounds_consistent = true
-    for var in JuMP.all_variables(model)
-        lb = if JuMP.has_lower_bound(var)
-            JuMP.lower_bound(var)
-        elseif JuMP.is_fixed(var)
-            JuMP.fix_value(var)
-        else
-            -Inf
-        end
-        ub = if JuMP.has_upper_bound(var)
-            JuMP.upper_bound(var)
-        elseif JuMP.is_fixed(var)
-            JuMP.fix_value(var)
-        else
-            Inf
-        end
-        if JuMP.is_integer(var)
-            if abs(ub - lb) < 1 && ceil(ub) == ceil(lb)
-                push!(
-                    out.infeasible_integrality,
-                    InfeasibleIntegrality(var, lb, ub, MOI.Integer()),
-                )
-                bounds_consistent = false
-            end
-        end
-        if JuMP.is_binary(var)
-            if lb > 0 && ub < 1
-                push!(
-                    out.infeasible_integrality,
-                    InfeasibleIntegrality(var, lb, ub, MOI.ZeroOne()),
-                )
-                bounds_consistent = false
-            end
-        end
-        if lb > ub
-            push!(out.infeasible_bounds, InfeasibleBounds(var, lb, ub))
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.Integer}(),
+    )
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        _lb = get(lb, func, -Inf)
+        _ub = get(ub, func, Inf)
+        if abs(_ub - _lb) < 1 && ceil(_ub) == ceil(_lb)
+            push!(
+                out.infeasible_integrality,
+                InfeasibleIntegrality(func, _lb, _ub, MOI.Integer()),
+            )
             bounds_consistent = false
-        else
-            variables[var] = Interval(lb, ub)
         end
     end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{MOI.VariableIndex,MOI.ZeroOne}(),
+    )
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        _lb = get(lb, func, -Inf)
+        _ub = get(ub, func, Inf)
+        if _lb > 0 && _ub < 1
+            push!(
+                out.infeasible_integrality,
+                InfeasibleIntegrality(func, _lb, _ub, MOI.ZeroOne()),
+            )
+            bounds_consistent = false
+        end
+    end
+
+    for var in variable_indices
+        _lb = get(lb, var, -Inf)
+        _ub = get(ub, var, Inf)
+        if _lb > _ub
+            push!(out.infeasible_bounds, InfeasibleBounds(var, _lb, _ub))
+            bounds_consistent = false
+        else
+            variables[var] = Interval(_lb, _ub)
+        end
+    end
+
     # check PSD diagonal >= 0 ?
     # other cones?
     if !bounds_consistent
@@ -199,57 +281,97 @@ function ModelAnalyzer.analyze(
 
     # second layer of infeasibility analysis is constraint range analysis
     range_consistent = true
-    for (F, S) in JuMP.list_of_constraint_types(model)
-        F != JuMP.GenericAffExpr{T,JuMP.VariableRef} && continue
-        # TODO: handle quadratics
-        !(S in (MOI.EqualTo{T}, MOI.LessThan{T}, MOI.GreaterThan{T})) &&
-            continue
-        for con in JuMP.all_constraints(model, F, S)
-            con_obj = JuMP.constraint_object(con)
-            interval = JuMP.value(x -> variables[x], con_obj.func)
-            if con_obj.set isa MOI.EqualTo{T}
-                rhs = con_obj.set.value
-                if interval.lo > rhs || interval.hi < rhs
-                    push!(
-                        out.constraint_range,
-                        InfeasibleConstraintRange(
-                            con,
-                            interval.lo,
-                            interval.hi,
-                            con_obj.set,
-                        ),
-                    )
-                    range_consistent = false
-                end
-            elseif con_obj.set isa MOI.LessThan{T}
-                rhs = con_obj.set.upper
-                if interval.lo > rhs
-                    push!(
-                        out.constraint_range,
-                        InfeasibleConstraintRange(
-                            con,
-                            interval.lo,
-                            interval.hi,
-                            con_obj.set,
-                        ),
-                    )
-                    range_consistent = false
-                end
-            elseif con_obj.set isa MOI.GreaterThan{T}
-                rhs = con_obj.set.lower
-                if interval.hi < rhs
-                    push!(
-                        out.constraint_range,
-                        InfeasibleConstraintRange(
-                            con,
-                            interval.lo,
-                            interval.hi,
-                            con_obj.set,
-                        ),
-                    )
-                    range_consistent = false
-                end
-            end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{
+            MOI.ScalarAffineFunction{T},
+            MOI.EqualTo{T},
+        }(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        failed = false
+        interval = _eval_variables(func) do var_idx
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
+            return variables[var_idx]
+        end
+        # if failed
+        #     continue
+        # end
+        rhs = set.value
+        if interval.lo > rhs || interval.hi < rhs
+            push!(
+                out.constraint_range,
+                InfeasibleConstraintRange(con, interval.lo, interval.hi, set),
+            )
+            range_consistent = false
+        end
+    end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{
+            MOI.ScalarAffineFunction{T},
+            MOI.LessThan{T},
+        }(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        failed = false
+        interval = _eval_variables(func) do var_idx
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
+            return variables[var_idx]
+        end
+        # if failed
+        #     continue
+        # end
+        rhs = set.upper
+        if interval.lo > rhs
+            push!(
+                out.constraint_range,
+                InfeasibleConstraintRange(con, interval.lo, interval.hi, set),
+            )
+            range_consistent = false
+        end
+    end
+
+    for con in MOI.get(
+        model,
+        MOI.ListOfConstraintIndices{
+            MOI.ScalarAffineFunction{T},
+            MOI.GreaterThan{T},
+        }(),
+    )
+        set = MOI.get(model, MOI.ConstraintSet(), con)
+        func = MOI.get(model, MOI.ConstraintFunction(), con)
+        failed = false
+        interval = _eval_variables(func) do var_idx
+            # this only fails if we allow continuing after bounds issues
+            # if !haskey(variables, var_idx)
+            #     failed = true
+            #     return Interval(-Inf, Inf)
+            # end
+            return variables[var_idx]
+        end
+        # if failed
+        #     continue
+        # end
+        rhs = set.lower
+        if interval.hi < rhs
+            push!(
+                out.constraint_range,
+                InfeasibleConstraintRange(con, interval.lo, interval.hi, set),
+            )
+            range_consistent = false
         end
     end
 
@@ -272,14 +394,50 @@ function ModelAnalyzer.analyze(
     return out
 end
 
-function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
+function _fix_to_zero(model, variable::MOI.VariableIndex, ::Type{T}) where {T}
+    ub_idx =
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{T}}(variable.value)
+    lb_idx = MOI.ConstraintIndex{MOI.VariableIndex,MOI.GreaterThan{T}}(
+        variable.value,
+    )
+    has_lower = false
+    if MOI.is_valid(model, lb_idx)
+        MOI.delete(model, lb_idx)
+        has_lower = true
+        # MOI.PenaltyRelaxation only creates variables with LB
+        # elseif MOI.is_valid(model, ub_idx)
+        #     MOI.delete(model, ub_idx)
+    else
+        error("Variable is not bounded")
+    end
+    MOI.add_constraint(model, variable, MOI.EqualTo{T}(zero(T)))
+    return has_lower
+end
 
-    # if JuMP.termination_status(original_model) == MOI.OPTIMIZE_NOT_CALLED
-    #     println("iis resolver cannot continue because model is not optimized")
-    #     # JuMP.optimize!(original_model)
-    # end
+function _set_bound_zero(
+    model,
+    variable::MOI.VariableIndex,
+    has_lower::Bool,
+    ::Type{T},
+) where {T}
+    eq_idx =
+        MOI.ConstraintIndex{MOI.VariableIndex,MOI.EqualTo{T}}(variable.value)
+    @assert MOI.is_valid(model, eq_idx)
+    MOI.delete(model, eq_idx)
+    if has_lower
+        MOI.add_constraint(model, variable, MOI.GreaterThan{T}(zero(T)))
+        # MOI.PenaltyRelaxation only creates variables with LB
+        # else
+        #     MOI.add_constraint(model, variable, MOI.LessThan{T}(zero(T)))
+    end
+    return
+end
 
-    status = JuMP.termination_status(original_model)
+function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
+    T = Float64
+
+    # handle optimize not called
+    status = MOI.get(original_model, MOI.TerminationStatus())
     if status != MOI.INFEASIBLE
         println(
             "iis resolver cannot continue because model is found to be $(status) by the solver",
@@ -287,15 +445,13 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
         return nothing
     end
 
-    model, reference_map = JuMP.copy_model(original_model)
-    JuMP.set_optimizer(model, optimizer)
-    JuMP.set_silent(model)
-    # TODO handle ".ext" to avoid warning
+    model = MOI.instantiate(optimizer)
+    reference_map = MOI.copy_to(model, original_model)
+    MOI.set(model, MOI.Silent(), true)
 
-    constraint_to_affine = JuMP.relax_with_penalty!(model, default = 1.0)
+    constraint_to_affine =
+        MOI.modify(model, MOI.Utilities.PenaltyRelaxation(default = 1.0))
     # might need to do something related to integers / binary
-
-    JuMP.optimize!(model)
 
     max_iterations = length(constraint_to_affine)
 
@@ -304,47 +460,46 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
     de_elastisized = []
 
     for i in 1:max_iterations
-        if JuMP.termination_status(model) == MOI.INFEASIBLE
+        MOI.optimize!(model)
+        status = MOI.get(model, MOI.TerminationStatus())
+        if status == MOI.INFEASIBLE
             break
         end
         for (con, func) in constraint_to_affine
             if length(func.terms) == 1
-                var = collect(keys(func.terms))[1]
-                if JuMP.value(var) > tolerance
-                    has_lower = JuMP.has_lower_bound(var)
-                    JuMP.fix(var, 0.0; force = true)
-                    # or delete(model, var)
+                var = func.terms[1].variable
+                value = MOI.get(model, MOI.VariablePrimal(), var)
+                if value > tolerance
+                    has_lower = _fix_to_zero(model, var, T)
                     delete!(constraint_to_affine, con)
                     push!(de_elastisized, (con, var, has_lower))
                 end
             elseif length(func.terms) == 2
-                var = collect(keys(func.terms))
-                coef1 = func.terms[var[1]]
-                coef2 = func.terms[var[2]]
-                if JuMP.value(var[1]) > tolerance &&
-                   JuMP.value(var[2]) > tolerance
+                var1 = func.terms[1].variable
+                coef1 = func.terms[1].coefficient
+                var2 = func.terms[2].variable
+                coef2 = func.terms[2].coefficient
+                value1 = MOI.get(model, MOI.VariablePrimal(), var1)
+                value2 = MOI.get(model, MOI.VariablePrimal(), var2)
+                if value1 > tolerance && value2 > tolerance
                     error("IIS failed due numerical instability")
-                elseif JuMP.value(var[1]) > tolerance
-                    has_lower = JuMP.has_lower_bound(var[1])
-                    JuMP.fix(var[1], 0.0; force = true)
-                    # or delete(model, var[1])
+                elseif value1 > tolerance
+                    # TODO: coef is alwayas 1.0
+                    has_lower = _fix_to_zero(model, var1, T)
                     delete!(constraint_to_affine, con)
-                    constraint_to_affine[con] = coef2 * var[2]
-                    push!(de_elastisized, (con, var[1], has_lower))
-                elseif JuMP.value(var[2]) > tolerance
-                    has_lower = JuMP.has_lower_bound(var[2])
-                    JuMP.fix(var[2], 0.0; force = true)
-                    # or delete(model, var[2])
+                    constraint_to_affine[con] = coef2 * var2
+                    push!(de_elastisized, (con, var1, has_lower))
+                elseif value2 > tolerance
+                    has_lower = _fix_to_zero(model, var2, T)
                     delete!(constraint_to_affine, con)
-                    constraint_to_affine[con] = coef1 * var[1]
-                    push!(de_elastisized, (con, var[2], has_lower))
+                    constraint_to_affine[con] = coef1 * var1
+                    push!(de_elastisized, (con, var2, has_lower))
                 end
             else
                 println(
                     "$con and relaxing function with more than two terms: $func",
                 )
             end
-            JuMP.optimize!(model)
         end
     end
 
@@ -352,38 +507,32 @@ function iis_elastic_filter(original_model::JuMP.GenericModel, optimizer)
     # be careful with intervals
 
     # deletion filter
-    cadidates = JuMP.ConstraintRef[]
+    cadidates = MOI.ConstraintIndex[]
     for (con, var, has_lower) in de_elastisized
-        JuMP.unfix(var)
-        if has_lower
-            JuMP.set_lower_bound(var, 0.0)
-        else
-            JuMP.set_upper_bound(var, 0.0)
-        end
-        JuMP.optimize!(model)
-        if JuMP.termination_status(model) in
-           (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE)
+        _set_bound_zero(model, var, has_lower, T)
+        MOI.optimize!(model)
+        status = MOI.get(model, MOI.TerminationStatus())
+        if status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE)
             # this constraint is not in IIS
-        elseif JuMP.termination_status(model) in
-               (MOI.OPTIMAL, MOI.ALMOST_OPTIMAL)
+        elseif status in (MOI.OPTIMAL, MOI.ALMOST_OPTIMAL)
             push!(cadidates, con)
-            JuMP.fix(var, 0.0, force = true)
+            _fix_to_zero(model, var, T)
         else
-            error(
-                "IIS failed due numerical instability, got status $(JuMP.termination_status(model))",
-            )
+            error("IIS failed due numerical instability, got status $status")
         end
     end
 
     pre_iis = Set(cadidates)
-    iis = JuMP.ConstraintRef[]
-    for con in JuMP.all_constraints(
-        original_model,
-        include_variable_in_set_constraints = false,
-    )
-        new_con = reference_map[con]
-        if new_con in pre_iis
-            push!(iis, con)
+    iis = MOI.ConstraintIndex[]
+    for (F, S) in MOI.get(original_model, MOI.ListOfConstraintTypesPresent())
+        if F == MOI.VariableIndex
+            continue
+        end
+        for con in MOI.get(original_model, MOI.ListOfConstraintIndices{F,S}())
+            new_con = reference_map[con]
+            if new_con in pre_iis
+                push!(iis, con)
+            end
         end
     end
 
@@ -536,17 +685,29 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::InfeasibleBounds{T}) where {T}
-    return print(io, _name(issue.variable), " : ", issue.lb, " !<= ", issue.ub)
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::InfeasibleBounds{T},
+    model,
+) where {T}
+    return print(
+        io,
+        ModelAnalyzer._name(issue.variable, model),
+        " : ",
+        issue.lb,
+        " !<= ",
+        issue.ub,
+    )
 end
 
 function ModelAnalyzer._summarize(
     io::IO,
     issue::InfeasibleIntegrality{T},
+    model,
 ) where {T}
     return print(
         io,
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, model),
         " : [",
         issue.lb,
         "; ",
@@ -559,10 +720,11 @@ end
 function ModelAnalyzer._summarize(
     io::IO,
     issue::InfeasibleConstraintRange{T},
+    model,
 ) where {T}
     return print(
         io,
-        _name(issue.constraint),
+        ModelAnalyzer._name(issue.constraint, model),
         " : [",
         issue.lb,
         "; ",
@@ -572,18 +734,27 @@ function ModelAnalyzer._summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::IrreducibleInfeasibleSubset)
-    return print(io, "IIS: ", join(map(_name, issue.constraint), ", "))
+function ModelAnalyzer._summarize(
+    io::IO,
+    issue::IrreducibleInfeasibleSubset,
+    model,
+)
+    return print(
+        io,
+        "IIS: ",
+        join(map(x -> ModelAnalyzer._name(x, model), issue.constraint), ", "),
+    )
 end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleBounds{T},
+    model,
 ) where {T}
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, model),
         " with lower bound ",
         issue.lb,
         " and upper bound ",
@@ -594,11 +765,12 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleIntegrality{T},
+    model,
 ) where {T}
     return print(
         io,
         "Variable: ",
-        _name(issue.variable),
+        ModelAnalyzer._name(issue.variable, model),
         " with lower bound ",
         issue.lb,
         " and upper bound ",
@@ -611,11 +783,12 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleConstraintRange{T},
+    model,
 ) where {T}
     return print(
         io,
         "Constraint: ",
-        _name(issue.constraint),
+        ModelAnalyzer._name(issue.constraint, model),
         " with computed lower bound ",
         issue.lb,
         " and computed upper bound ",
@@ -628,11 +801,12 @@ end
 function ModelAnalyzer._verbose_summarize(
     io::IO,
     issue::IrreducibleInfeasibleSubset,
+    model,
 )
     return print(
         io,
         "Irreducible Infeasible Subset: ",
-        join(map(_name, issue.constraint), ", "),
+        join(map(x -> ModelAnalyzer._name(x, model), issue.constraint), ", "),
     )
 end
 
@@ -676,6 +850,7 @@ end
 function ModelAnalyzer.summarize(
     io::IO,
     data::Data;
+    model = nothing,
     verbose = true,
     max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
 )
@@ -687,6 +862,7 @@ function ModelAnalyzer.summarize(
         ModelAnalyzer.summarize(
             io,
             issues,
+            model = model,
             verbose = verbose,
             max_issues = max_issues,
         )
@@ -701,16 +877,6 @@ function Base.show(io::IO, data::Data)
         init = 0,
     )
     return print(io, "Infeasibility analysis found $n issues")
-end
-
-# printing helpers
-
-function _name(ref)
-    name = JuMP.name(ref)
-    if !isempty(name)
-        return name
-    end
-    return "$(ref.index)"
 end
 
 end # module

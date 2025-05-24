@@ -1,4 +1,4 @@
-using Documenter, ModelAnalyzer
+using Documenter, ModelAnalyzer, JuMP
 
 makedocs(; sitename = "ModelAnalyzer.jl documentation")
 

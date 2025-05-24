@@ -129,3 +129,17 @@ ModelAnalyzer.summarize(issues)
 # individual issues can also be summarized
 ModelAnalyzer.summarize(issues[1])
 ```
+
+### Non JuMP (or MOI) models
+
+If you dont have a JuMP (or MOI) model, you can still use this package reading from a file.
+
+```julia
+model = Model();
+@variable(model, x >= 0);
+@objective(model, Min, 2 * x + 1);
+filename = joinpath(mktempdir(), "model.mps");
+write_to_file(model, filename; generic_names = true)
+new_model = read_from_file(filename; use_nlp_block = false)
+print(new_model)
+```
