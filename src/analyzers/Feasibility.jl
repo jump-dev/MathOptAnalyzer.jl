@@ -5,9 +5,9 @@
 
 module Feasibility
 
-import ModelAnalyzer
 import Dualization
 import MathOptInterface as MOI
+import ModelAnalyzer
 import Printf
 
 """
@@ -103,7 +103,7 @@ ModelAnalyzer.value(issue::DualConstraintViolation) = issue.violation
 """
     DualConstrainedVariableViolation <: AbstractFeasibilityIssue
 
-The `DualConstrainedVariableViolation` issue is identified when a dual 
+The `DualConstrainedVariableViolation` issue is identified when a dual
 constraint, which is a constrained varaible constraint, has a value
 that is not within the dual constraint's set.
 During the dualization  process, each primal constraint is mapped to a dual
@@ -301,7 +301,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
 
         ## What
 
-        A `PrimalViolation` issue is identified when a constraint has 
+        A `PrimalViolation` issue is identified when a constraint has
         function , i.e., a left-hand-side value, that is not within
         the constraint's set.
 
@@ -1025,7 +1025,7 @@ function _dual_point_to_dual_model_ref(
                 #     if !(primal_con isa MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.EqualTo} ||
                 #         primal_con isa MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.Zeros}
                 #         SAF in EQ, etc...
-                #) 
+                #)
                 #         error("Problem with dualization, see: $primal_con")
                 #     end
             end

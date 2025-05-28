@@ -5,11 +5,57 @@
 
 module Infeasibility
 
-import ModelAnalyzer
 import MathOptInterface as MOI
+import ModelAnalyzer
 
-include("intervals.jl")
-include("_eval_variables.jl")
+# This type and the associated function were inspired by IntervalArithmetic.jl
+# Copyright (c) 2014-2021: David P. Sanders & Luis Benet
+struct Interval{T<:Real}
+    lo::T
+    hi::T
+
+    function Interval(lo::T, hi::T) where {T<:Real}
+        @assert lo <= hi
+        return new{T}(lo, hi)
+    end
+end
+
+Base.convert(::Type{Interval{T}}, x::T) where {T<:Real} = Interval(x, x)
+
+Base.zero(::Type{Interval{T}}) where {T<:Real} = Interval(zero(T), zero(T))
+
+Base.iszero(a::Interval) = iszero(a.hi) && iszero(a.lo)
+
+function Base.:+(a::Interval{T}, b::Interval{T}) where {T<:Real}
+    return Interval(a.lo + b.lo, a.hi + b.hi)
+end
+
+function Base.:*(x::T, a::Interval{T}) where {T<:Real}
+    if iszero(a) || iszero(x)
+        return Interval(zero(T), zero(T))
+    elseif x >= zero(T)
+        return Interval(a.lo * x, a.hi * x)
+    end
+    return Interval(a.hi * x, a.lo * x)
+end
+
+function _eval_variables(value_fn::Function, t::MOI.ScalarAffineTerm)
+    return t.coefficient * value_fn(t.variable)
+end
+
+function _eval_variables(
+    value_fn::Function,
+    f::MOI.ScalarAffineFunction{T},
+) where {T}
+    # TODO: this conversion exists in JuMP, but not in MOI
+    S = Base.promote_op(value_fn, MOI.VariableIndex)
+    U = MOI.MA.promote_operation(*, T, S)
+    out = convert(U, f.constant)
+    for t in f.terms
+        out += _eval_variables(value_fn, t)
+    end
+    return out
+end
 
 """
     Analyzer() <: ModelAnalyzer.AbstractAnalyzer
@@ -63,7 +109,7 @@ ModelAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
     InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
 
 The `InfeasibleIntegrality` issue is identified when a variable has an
-integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not 
+integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not
 consistent with its bounds. That is, the bounds do not allow for any
 integer value to be feasible.
 
@@ -580,7 +626,7 @@ function ModelAnalyzer._verbose_summarize(
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -611,7 +657,7 @@ function ModelAnalyzer._verbose_summarize(
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -642,7 +688,7 @@ function ModelAnalyzer._verbose_summarize(
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -667,12 +713,12 @@ function ModelAnalyzer._verbose_summarize(
         ## What
 
         An `IrreducibleInfeasibleSubset` issue is identified when a subset of constraints
-        cannot be satisfied simultaneously. 
+        cannot be satisfied simultaneously.
 
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
