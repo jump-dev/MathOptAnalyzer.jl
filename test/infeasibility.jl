@@ -64,6 +64,8 @@ function test_bounds()
     str = String(take!(buf))
     @test contains(str, " : ")
     @test contains(str, " !<= ")
+    ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = true)
     return
 end
 
@@ -114,6 +116,8 @@ function test_integrality()
     @test contains(str, " : [")
     @test contains(str, "; ")
     @test contains(str, "], ")
+    ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = true)
     return
 end
 
@@ -137,6 +141,9 @@ function test_binary()
     @test ModelAnalyzer.variable(ret[], model) == x
     @test ModelAnalyzer.values(ret[]) == [0.5, 0.8]
     @test ModelAnalyzer.set(ret[]) == MOI.ZeroOne()
+    buf = IOBuffer()
+    ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = true)
     return
 end
 
@@ -188,6 +195,8 @@ function test_range()
     @test contains(str, " : [")
     @test contains(str, "; ")
     @test contains(str, "], !in ")
+    ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = true)
     return
 end
 
@@ -405,6 +414,8 @@ function test_iis()
     ModelAnalyzer.summarize(buf, data, verbose = true)
     str = String(take!(buf))
     @test startswith(str, "## Infeasibility Analysis\n\n")
+    ModelAnalyzer.summarize(buf, data, verbose = false)
+    ModelAnalyzer.summarize(buf, data, verbose = true)
     return
 end
 

@@ -541,32 +541,23 @@ end
 
 # API
 
-function ModelAnalyzer._summarize(io::IO, ::Type{InfeasibleBounds{T}}) where {T}
+function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleBounds})
     return print(io, "# InfeasibleBounds")
 end
 
-function ModelAnalyzer._summarize(
-    io::IO,
-    ::Type{InfeasibleIntegrality{T}},
-) where {T}
+function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleIntegrality})
     return print(io, "# InfeasibleIntegrality")
 end
 
-function ModelAnalyzer._summarize(
-    io::IO,
-    ::Type{InfeasibleConstraintRange{T}},
-) where {T}
+function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleConstraintRange})
     return print(io, "# InfeasibleConstraintRange")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{IrreducibleInfeasibleSubset})
+function ModelAnalyzer._summarize(io::IO, ::Type{<:IrreducibleInfeasibleSubset})
     return print(io, "# IrreducibleInfeasibleSubset")
 end
 
-function ModelAnalyzer._verbose_summarize(
-    io::IO,
-    ::Type{InfeasibleBounds{T}},
-) where {T}
+function ModelAnalyzer._verbose_summarize(io::IO, ::Type{<:InfeasibleBounds})
     return print(
         io,
         """
@@ -595,8 +586,8 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    ::Type{InfeasibleIntegrality{T}},
-) where {T}
+    ::Type{<:InfeasibleIntegrality},
+)
     return print(
         io,
         """
@@ -626,8 +617,8 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    ::Type{InfeasibleConstraintRange{T}},
-) where {T}
+    ::Type{<:InfeasibleConstraintRange},
+)
     return print(
         io,
         """
@@ -657,7 +648,7 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    ::Type{IrreducibleInfeasibleSubset},
+    ::Type{<:IrreducibleInfeasibleSubset},
 )
     return print(
         io,
@@ -685,11 +676,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(
-    io::IO,
-    issue::InfeasibleBounds{T},
-    model,
-) where {T}
+function ModelAnalyzer._summarize(io::IO, issue::InfeasibleBounds, model)
     return print(
         io,
         ModelAnalyzer._name(issue.variable, model),
@@ -700,11 +687,7 @@ function ModelAnalyzer._summarize(
     )
 end
 
-function ModelAnalyzer._summarize(
-    io::IO,
-    issue::InfeasibleIntegrality{T},
-    model,
-) where {T}
+function ModelAnalyzer._summarize(io::IO, issue::InfeasibleIntegrality, model)
     return print(
         io,
         ModelAnalyzer._name(issue.variable, model),
@@ -719,9 +702,9 @@ end
 
 function ModelAnalyzer._summarize(
     io::IO,
-    issue::InfeasibleConstraintRange{T},
+    issue::InfeasibleConstraintRange,
     model,
-) where {T}
+)
     return print(
         io,
         ModelAnalyzer._name(issue.constraint, model),
@@ -748,9 +731,9 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    issue::InfeasibleBounds{T},
+    issue::InfeasibleBounds,
     model,
-) where {T}
+)
     return print(
         io,
         "Variable: ",
@@ -764,9 +747,9 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    issue::InfeasibleIntegrality{T},
+    issue::InfeasibleIntegrality,
     model,
-) where {T}
+)
     return print(
         io,
         "Variable: ",
@@ -782,9 +765,9 @@ end
 
 function ModelAnalyzer._verbose_summarize(
     io::IO,
-    issue::InfeasibleConstraintRange{T},
+    issue::InfeasibleConstraintRange,
     model,
-) where {T}
+)
     return print(
         io,
         "Constraint: ",
