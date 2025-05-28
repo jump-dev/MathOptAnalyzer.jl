@@ -438,7 +438,7 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
 
     # handle optimize not called
     status = MOI.get(original_model, MOI.TerminationStatus())
-    if status != MOI.INFEASIBLE
+    if !(status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE, MOI.ALMOST_INFEASIBLE))
         println(
             "iis resolver cannot continue because model is found to be $(status) by the solver",
         )
@@ -462,7 +462,7 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
     for i in 1:max_iterations
         MOI.optimize!(model)
         status = MOI.get(model, MOI.TerminationStatus())
-        if status == MOI.INFEASIBLE
+        if status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE, MOI.ALMOST_INFEASIBLE)
             break
         end
         for (con, func) in constraint_to_affine
@@ -506,17 +506,46 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
     # consider deleting all no iis constraints
     # be careful with intervals
 
+    obj_type = MOI.get(model, MOI.ObjectiveFunctionType())
+    obj_func = MOI.get(model, MOI.ObjectiveFunction{obj_type}())
+    obj_sense = MOI.get(model, MOI.ObjectiveSense())
+
     # deletion filter
     cadidates = MOI.ConstraintIndex[]
     for (con, var, has_lower) in de_elastisized
         _set_bound_zero(model, var, has_lower, T)
         MOI.optimize!(model)
         status = MOI.get(model, MOI.TerminationStatus())
-        if status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE)
+        if status in (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE, MOI.ALMOST_INFEASIBLE)
             # this constraint is not in IIS
-        elseif status in (MOI.OPTIMAL, MOI.ALMOST_OPTIMAL)
+        elseif status in (
+            MOI.OPTIMAL, MOI.ALMOST_OPTIMAL, MOI.LOCALLY_SOLVED, MOI.ALMOST_LOCALLY_SOLVED,
+            )
             push!(cadidates, con)
             _fix_to_zero(model, var, T)
+        elseif status in (
+            MOI.INFEASIBLE_OR_UNBOUNDED,
+            MOI.DUAL_INFEASIBLE, MOI.ALMOST_DUAL_INFEASIBLE, # possibily primal unbounded
+            )
+            MOI.set(model, MOI.ObjectiveSense(), MOI.FEASIBILITY_SENSE)
+            MOI.optimize!(model)
+            primal_status = MOI.get(model, MOI.PrimalStatus())
+            if primal_status in (MOI.FEASIBLE_POINT, MOI.NEARLY_FEASIBLE_POINT)
+                # this constraint is not in IIS
+                push!(cadidates, con)
+                _fix_to_zero(model, var, T)
+                MOI.set(model, MOI.ObjectiveSense(), obj_sense)
+                MOI.set(
+                    model,
+                    MOI.ObjectiveFunction{obj_type}(),
+                    obj_func,
+                )
+            else
+                error(
+                    "IIS failed due numerical instability, got status $status,",
+                    "then, for MOI.FEASIBILITY_SENSE objective, got primal status $primal_status",
+                )
+            end
         else
             error("IIS failed due numerical instability, got status $status")
         end
