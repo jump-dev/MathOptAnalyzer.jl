@@ -481,7 +481,11 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
             MOI.ALMOST_DUAL_INFEASIBLE,
         )
             #try with a pure relaxation objective
-            MOI.set(model, MOI.ObjectiveFunction{relaxed_obj_type}(), pure_relaxed_obj_func)
+            MOI.set(
+                model,
+                MOI.ObjectiveFunction{relaxed_obj_type}(),
+                pure_relaxed_obj_func,
+            )
             changed_obj = true
             MOI.optimize!(model)
         end
@@ -528,7 +532,11 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
     end
 
     if changed_obj
-        MOI.set(model, MOI.ObjectiveFunction{relaxed_obj_type}(), relaxed_obj_func)
+        MOI.set(
+            model,
+            MOI.ObjectiveFunction{relaxed_obj_type}(),
+            relaxed_obj_func,
+        )
     end
 
     # consider deleting all no iis constraints
