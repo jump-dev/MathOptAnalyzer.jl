@@ -419,6 +419,33 @@ function test_iis()
     return
 end
 
+function test_iis_free_var()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, -2x + y)
+    optimize!(model)
+    data = ModelAnalyzer.analyze(
+        ModelAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = HiGHS.Optimizer,
+    )
+    list = ModelAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = ModelAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = ModelAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
+    return
+end
+
 function test_iis_multiple()
     model = Model(HiGHS.Optimizer)
     set_silent(model)
