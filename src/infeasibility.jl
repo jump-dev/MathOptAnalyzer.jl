@@ -452,9 +452,17 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
     reference_map = MOI.copy_to(model, original_model)
     MOI.set(model, MOI.Silent(), true)
 
+    obj_sense = MOI.get(model, MOI.ObjectiveSense())
+    base_obj_type = MOI.get(model, MOI.ObjectiveFunctionType())
+    base_obj_func = MOI.get(model, MOI.ObjectiveFunction{base_obj_type}())
+
     constraint_to_affine =
         MOI.modify(model, MOI.Utilities.PenaltyRelaxation(default = 1.0))
     # might need to do something related to integers / binary
+    relaxed_obj_type = MOI.get(model, MOI.ObjectiveFunctionType())
+    relaxed_obj_func = MOI.get(model, MOI.ObjectiveFunction{relaxed_obj_type}())
+
+    pure_relaxed_obj_func = relaxed_obj_func - base_obj_func
 
     max_iterations = length(constraint_to_affine)
 
@@ -462,9 +470,21 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
 
     de_elastisized = []
 
+    changed_obj = false
+
     for i in 1:max_iterations
         MOI.optimize!(model)
         status = MOI.get(model, MOI.TerminationStatus())
+        if status in ( # possibily primal unbounded
+            MOI.INFEASIBLE_OR_UNBOUNDED,
+            MOI.DUAL_INFEASIBLE,
+            MOI.ALMOST_DUAL_INFEASIBLE,
+        )
+            #try with a pure relaxation objective
+            MOI.set(model, MOI.ObjectiveFunction{relaxed_obj_type}(), pure_relaxed_obj_func)
+            changed_obj = true
+            MOI.optimize!(model)
+        end
         if status in
            (MOI.INFEASIBLE, MOI.ALMOST_INFEASIBLE, MOI.ALMOST_INFEASIBLE)
             break
@@ -505,6 +525,10 @@ function iis_elastic_filter(original_model::MOI.ModelLike, optimizer)
                 )
             end
         end
+    end
+
+    if changed_obj
+        MOI.set(model, MOI.ObjectiveFunction{relaxed_obj_type}(), relaxed_obj_func)
     end
 
     # consider deleting all no iis constraints
