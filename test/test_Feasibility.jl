@@ -3,7 +3,7 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-module TestDualFeasibilityChecker
+module TestFeasibility
 
 using ModelAnalyzer
 using Test
@@ -1066,6 +1066,6 @@ function test_nl_obj()
     return
 end
 
-end # module
+end # module TestFeasibility
 
-TestDualFeasibilityChecker.runtests()
+TestFeasibility.runtests()
