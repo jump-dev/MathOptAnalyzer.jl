@@ -92,4 +92,4 @@ function ModelAnalyzer.constraints(
     return JuMP.constraint_ref_with_index.(model, ref)
 end
 
-end # module ModelAnalyzerJuMPExt
+end  # module ModelAnalyzerJuMPExt

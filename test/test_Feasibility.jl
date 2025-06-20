@@ -1066,6 +1066,6 @@ function test_nl_obj()
     return
 end
 
-end # module TestFeasibility
+end  # module TestFeasibility
 
 TestFeasibility.runtests()

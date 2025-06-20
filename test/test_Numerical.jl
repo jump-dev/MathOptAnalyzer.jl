@@ -1320,6 +1320,6 @@ function test_more_than_max_issues()
     return
 end
 
-end # module TestNumerical
+end  # module TestNumerical
 
 TestNumerical.runtests()

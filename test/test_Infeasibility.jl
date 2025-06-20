@@ -575,6 +575,6 @@ function test_iis_spare()
     return
 end
 
-end # module TestInfeasibility
+end  # module TestInfeasibility
 
 TestInfeasibility.runtests()

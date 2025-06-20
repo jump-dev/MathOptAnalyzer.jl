@@ -223,4 +223,4 @@ include("Numerical/Numerical.jl")
 include("Feasibility/Feasibility.jl")
 include("Infeasibility/Infeasibility.jl")
 
-end # module ModelAnalyzer
+end  # module ModelAnalyzer
