@@ -55,7 +55,7 @@ ModelAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
     InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
 
 The `InfeasibleIntegrality` issue is identified when a variable has an
-integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not 
+integrality constraint (like `MOI.Integer` or `MOI.ZeroOne`) that is not
 consistent with its bounds. That is, the bounds do not allow for any
 integer value to be feasible.
 

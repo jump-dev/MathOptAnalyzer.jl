@@ -30,7 +30,7 @@ function test_no_solution()
         model,
     )
     # no dual solutions available
-    # @test_throws ErrorException 
+    # @test_throws ErrorException
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
         model,
@@ -195,7 +195,7 @@ function test_no_lb()
     # the dual is:
     # Max 0
     # Subject to
-    # y == 1 (as a constraint) 
+    # y == 1 (as a constraint)
     # y >= 0 (as a bound)
     # mayber force fail here
     # @test_throws ErrorException

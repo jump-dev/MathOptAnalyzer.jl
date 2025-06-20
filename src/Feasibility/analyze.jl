@@ -144,7 +144,7 @@ function _dual_point_to_dual_model_ref(
                 #     if !(primal_con isa MOI.ConstraintIndex{MOI.VariableIndex,<:MOI.EqualTo} ||
                 #         primal_con isa MOI.ConstraintIndex{MOI.VectorOfVariables,MOI.Zeros}
                 #         SAF in EQ, etc...
-                #) 
+                #)
                 #         error("Problem with dualization, see: $primal_con")
                 #     end
             end

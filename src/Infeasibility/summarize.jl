@@ -33,7 +33,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{<:InfeasibleBounds})
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -64,7 +64,7 @@ function ModelAnalyzer._verbose_summarize(
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -95,7 +95,7 @@ function ModelAnalyzer._verbose_summarize(
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 
@@ -120,12 +120,12 @@ function ModelAnalyzer._verbose_summarize(
         ## What
 
         An `IrreducibleInfeasibleSubset` issue is identified when a subset of constraints
-        cannot be satisfied simultaneously. 
+        cannot be satisfied simultaneously.
 
         ## Why
 
         This can be a sign of a mistake in the model formulation. This error
-        will lead to infeasibility in the optimization problem. 
+        will lead to infeasibility in the optimization problem.
 
         ## How to fix
 

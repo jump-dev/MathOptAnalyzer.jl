@@ -96,7 +96,7 @@ ModelAnalyzer.value(issue::DualConstraintViolation) = issue.violation
 """
     DualConstrainedVariableViolation <: AbstractFeasibilityIssue
 
-The `DualConstrainedVariableViolation` issue is identified when a dual 
+The `DualConstrainedVariableViolation` issue is identified when a dual
 constraint, which is a constrained varaible constraint, has a value
 that is not within the dual constraint's set.
 During the dualization  process, each primal constraint is mapped to a dual

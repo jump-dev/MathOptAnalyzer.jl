@@ -46,7 +46,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
 
         ## What
 
-        A `PrimalViolation` issue is identified when a constraint has 
+        A `PrimalViolation` issue is identified when a constraint has
         function , i.e., a left-hand-side value, that is not within
         the constraint's set.
 
