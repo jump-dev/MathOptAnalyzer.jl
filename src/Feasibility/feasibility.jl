@@ -5,9 +5,9 @@
 
 module Feasibility
 
-import ModelAnalyzer
 import Dualization
 import MathOptInterface as MOI
+import ModelAnalyzer
 import Printf
 
 """

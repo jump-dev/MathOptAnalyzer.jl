@@ -5,10 +5,10 @@
 
 module TestInfeasibilityChecker
 
-import ModelAnalyzer
-using Test
 using JuMP
+using Test
 import HiGHS
+import ModelAnalyzer
 
 function runtests()
     for name in names(@__MODULE__; all = true)

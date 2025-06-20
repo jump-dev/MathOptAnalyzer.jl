@@ -5,10 +5,10 @@
 
 module Numerical
 
-import ModelAnalyzer
 import LinearAlgebra
-import Printf
 import MathOptInterface as MOI
+import ModelAnalyzer
+import Printf
 
 """
     Analyzer() <: ModelAnalyzer.AbstractAnalyzer

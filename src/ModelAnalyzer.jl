@@ -219,8 +219,8 @@ function _name(ref, ::Nothing)
     return "$ref"
 end
 
-include("numerical.jl")
-include("feasibility.jl")
-include("infeasibility.jl")
+include("Numerical/numerical.jl")
+include("Feasibility/feasibility.jl")
+include("Infeasibility/infeasibility.jl")
 
 end # module ModelAnalyzer
