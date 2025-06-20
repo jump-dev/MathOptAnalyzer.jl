@@ -3,12 +3,12 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-module TestInfeasibilityChecker
+module TestInfeasibility
 
-import ModelAnalyzer
-using Test
 using JuMP
+using Test
 import HiGHS
+import ModelAnalyzer
 
 function runtests()
     for name in names(@__MODULE__; all = true)
@@ -575,6 +575,6 @@ function test_iis_spare()
     return
 end
 
-end # module
+end  # module TestInfeasibility
 
-TestInfeasibilityChecker.runtests()
+TestInfeasibility.runtests()

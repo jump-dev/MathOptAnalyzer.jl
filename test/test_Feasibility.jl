@@ -3,7 +3,7 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-module TestDualFeasibilityChecker
+module TestFeasibility
 
 using ModelAnalyzer
 using Test
@@ -30,7 +30,7 @@ function test_no_solution()
         model,
     )
     # no dual solutions available
-    # @test_throws ErrorException 
+    # @test_throws ErrorException
     data = ModelAnalyzer.analyze(
         ModelAnalyzer.Feasibility.Analyzer(),
         model,
@@ -195,7 +195,7 @@ function test_no_lb()
     # the dual is:
     # Max 0
     # Subject to
-    # y == 1 (as a constraint) 
+    # y == 1 (as a constraint)
     # y >= 0 (as a bound)
     # mayber force fail here
     # @test_throws ErrorException
@@ -1066,6 +1066,6 @@ function test_nl_obj()
     return
 end
 
-end # module
+end  # module TestFeasibility
 
-TestDualFeasibilityChecker.runtests()
+TestFeasibility.runtests()

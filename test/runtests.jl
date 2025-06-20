@@ -7,11 +7,10 @@ using Test
 
 @testset "ModelAnalyzer" begin
     for file in readdir(@__DIR__)
-        if !endswith(file, ".jl") || file in ("runtests.jl",)
-            continue
-        end
-        @testset "$file" begin
-            include(file)
+        if startswith(file, "test_") && endswith(file, ".jl")
+            @testset "$file" begin
+                include(file)
+            end
         end
     end
 end
