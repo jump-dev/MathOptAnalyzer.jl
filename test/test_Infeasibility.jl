@@ -572,6 +572,8 @@ function test_iis_spare()
     iis = ModelAnalyzer.constraints(ret[], model)
     @test length(iis) == 2
     @test Set(iis) == Set([c2, c1])
+    io = IOBuffer()
+    ModelAnalyzer.summarize(io, ret[1], verbose = true, model = model)
     return
 end
 
