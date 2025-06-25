@@ -88,7 +88,7 @@ data = ModelAnalyzer.analyze(
 # print report to the screen
 ModelAnalyzer.summarize(data)
 
-# or print ehte report to a file
+# or print the report to a file
 
 # open a file
 open("my_report.txt", "w") do io
@@ -114,7 +114,7 @@ or it can be further inspected programmatically.
 ```julia
 # given a `data` object obtained from `ModelAnalyzer.analyze(...)`
 
-# query the types os issues found in the analysis
+# query the types of issues found in the analysis
 list = ModelAnalyzer.list_of_issue_types(data)
 
 # information about the types of issues found can be printed out
@@ -132,7 +132,7 @@ ModelAnalyzer.summarize(issues[1])
 
 ### Non JuMP (or MOI) models
 
-If you dont have a JuMP (or MOI) model, you can still use this package reading from a file.
+If you don't have a JuMP (or MOI) model, you can still use this package reading from a file.
 
 ```julia
 model = Model();
