@@ -9,7 +9,7 @@
 Analyze the coefficients of a model.
 
 """
-function ModelAnalyzer.analyze(
+function MathOptAnalyzer.analyze(
     ::Analyzer,
     model::MOI.ModelLike,
     ;

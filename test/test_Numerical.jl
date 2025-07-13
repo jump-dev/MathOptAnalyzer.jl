@@ -5,7 +5,7 @@
 
 module TestNumerical
 
-import ModelAnalyzer
+import MathOptAnalyzer
 using Test
 using JuMP
 
@@ -28,43 +28,43 @@ function test_variable_bounds()
     @variable(model, yg >= 3e+10)
     @variable(model, zs == 4e-11)
     @variable(model, zg == 4e+11)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 3
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 6
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
     )
     @test length(ret) == 3
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 3
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallBoundCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallBoundCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallBoundCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallBoundCoefficient"
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeBoundCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeBoundCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeBoundCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
@@ -85,48 +85,48 @@ function test_constraint_bounds()
     @constraint(model, [x] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e-16] in MOI.Nonnegatives(1))
     @constraint(model, [x - 1e+17] in MOI.Nonnegatives(1))
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 3
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+        MathOptAnalyzer.Numerical.VariableBoundAsConstraint,
     )
     @test length(ret) == 6
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 0
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
     )
     @test length(ret) == 4
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
     )
     @test length(ret) == 4
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallRHSCoefficient"
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
@@ -142,48 +142,48 @@ function test_constraint_bounds_quad()
     @constraint(model, x^2 <= 1e+15)
     @constraint(model, [x^2 - 1e-16] in MOI.Nonpositives(1))
     @constraint(model, [x^2 - 1e+17] in MOI.Nonpositives(1))
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 2
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+        MathOptAnalyzer.Numerical.VariableBoundAsConstraint,
     )
     @test length(ret) == 0
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 0
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
     )
     @test length(ret) == 2
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
     )
     @test length(ret) == 2
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallRHSCoefficient"
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
@@ -192,19 +192,19 @@ function test_constraint_bounds_quad()
     return
 end
 
-function test_constraint_bounds_quad()
+function test_constraint_bounds_quad_vec()
     model = Model()
     @variable(model, x)
     @constraint(model, c, [-x^2 - 3] in MOI.Nonpositives(1))
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test MathOptAnalyzer.constraint(ret[]) == JuMP.index(c)
     return
 end
 
@@ -215,26 +215,26 @@ function test_no_names()
     @variable(model, y)
     @constraint(model, 7y >= 3)
     @constraint(model, z, 0.0 * y == 3)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 2
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 1
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
         ret[1],
         verbose = true,
@@ -242,26 +242,26 @@ function test_no_names()
     )
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     #
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.EmptyConstraint,
+        MathOptAnalyzer.Numerical.EmptyConstraint,
     )
     @test length(ret) == 1
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
         ret[1],
         verbose = true,
@@ -269,7 +269,7 @@ function test_no_names()
     )
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
@@ -279,28 +279,28 @@ function test_variable_not_in_constraints()
     @variable(model, x)
     @variable(model, y)
     @constraint(model, 7y >= 3)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[]) == JuMP.index(x)
-    @test ModelAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.variable(ret[]) == JuMP.index(x)
+    @test MathOptAnalyzer.variable(ret[], model) == x
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
         ret[1],
         verbose = true,
@@ -308,7 +308,7 @@ function test_variable_not_in_constraints()
     )
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
@@ -318,39 +318,39 @@ function test_empty_constraint_model()
     @variable(model, x)
     @constraint(model, c1, 2 * x == 5)
     @constraint(model, c2, 0.0 * x == 3)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.EmptyConstraint,
+        MathOptAnalyzer.Numerical.EmptyConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c2)
-    @test ModelAnalyzer.constraint(ret[], model) == c2
+    @test MathOptAnalyzer.constraint(ret[]) == JuMP.index(c2)
+    @test MathOptAnalyzer.constraint(ret[], model) == c2
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.EmptyConstraint)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.EmptyConstraint)
     str = String(take!(buf))
     @test startswith(str, "# `EmptyConstraint`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.EmptyConstraint,
+        MathOptAnalyzer.Numerical.EmptyConstraint,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# EmptyConstraint"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true, model = model)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
         ret[1],
         verbose = true,
@@ -358,7 +358,7 @@ function test_empty_constraint_model()
     )
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false, model = model)
     str = String(take!(buf))
     return
 end
@@ -368,36 +368,36 @@ function test_variable_bound_as_constraint()
     @variable(model, x)
     @constraint(model, c, x <= 2)
     @constraint(model, 3x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+        MathOptAnalyzer.Numerical.VariableBoundAsConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
-    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test MathOptAnalyzer.constraint(ret[], model) == c
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+        MathOptAnalyzer.Numerical.VariableBoundAsConstraint,
     )
     str = String(take!(buf))
     @test startswith(str, "# `VariableBoundAsConstraint`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.VariableBoundAsConstraint,
+        MathOptAnalyzer.Numerical.VariableBoundAsConstraint,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# VariableBoundAsConstraint"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     return
 end
@@ -406,35 +406,35 @@ function test_dense_constraint()
     model = Model()
     @variable(model, x[1:10_000] <= 1)
     @constraint(model, c, sum(x) <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.DenseConstraint,
+        MathOptAnalyzer.Numerical.DenseConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[]) == JuMP.index(c)
-    @test ModelAnalyzer.constraint(ret[], JuMP.backend(model)) == JuMP.index(c)
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test ModelAnalyzer.value(ret[]) == 10_000
+    @test MathOptAnalyzer.constraint(ret[]) == JuMP.index(c)
+    @test MathOptAnalyzer.constraint(ret[], JuMP.backend(model)) == JuMP.index(c)
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.value(ret[]) == 10_000
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.DenseConstraint)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.DenseConstraint)
     str = String(take!(buf))
     @test startswith(str, "# `DenseConstraint`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.DenseConstraint,
+        MathOptAnalyzer.Numerical.DenseConstraint,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# DenseConstraint"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -444,36 +444,36 @@ function test_small_matrix_coef()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 1e-9 * x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallMatrixCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.variable(ret[], JuMP.backend(model)) == JuMP.index(x)
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.variable(ret[], JuMP.backend(model)) == JuMP.index(x)
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallMatrixCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallMatrixCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallMatrixCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallMatrixCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallMatrixCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Constraint -- Variable): (")
     @test contains(str, ") with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -484,35 +484,35 @@ function test_large_matrix_coef()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 1e+9 * x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeMatrixCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeMatrixCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeMatrixCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeMatrixCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeMatrixCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeMatrixCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Constraint -- Variable): (")
     @test contains(str, ") with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -523,34 +523,34 @@ function test_small_bound_coef()
     model = Model()
     @variable(model, x <= 1e-9)
     @constraint(model, 3 * x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallBoundCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallBoundCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallBoundCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallBoundCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     @test contains(str, " with bound ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -560,34 +560,34 @@ function test_large_bound_coef()
     model = Model()
     @variable(model, x <= 1e+9)
     @constraint(model, 3 * x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeBoundCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeBoundCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeBoundCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeBoundCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     @test contains(str, " with bound ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -597,34 +597,34 @@ function test_small_rhs_coef()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 3 * x <= 1e-9)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallRHSCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
     @test contains(str, " with right-hand-side ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -634,34 +634,34 @@ function test_large_rhs_coef()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 3 * x <= 1e+9)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, ModelAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeRHSCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
     @test contains(str, " with right-hand-side ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -672,37 +672,37 @@ function test_small_objective_coef()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Min, 1e-9 * x)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `SmallObjectiveCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallObjectiveCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     @test contains(str, " with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -713,37 +713,37 @@ function test_large_objective_coef()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Min, 1e+9 * x)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `LargeObjectiveCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeObjectiveCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeObjectiveCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Variable: ")
     @test contains(str, " with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " : ")
     return
@@ -754,39 +754,39 @@ function test_small_objective_coef_quad()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Min, 1e-9 * x^2)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variables(ret[], model) == [x, x]
-    @test ModelAnalyzer.variables(ret[], JuMP.backend(model)) ==
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
+    @test MathOptAnalyzer.variables(ret[], JuMP.backend(model)) ==
           JuMP.index.([x, x])
-    @test_broken ModelAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `SmallObjectiveQuadraticCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallObjectiveQuadraticCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Variable -- Variable): (")
     @test contains(str, " with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -798,37 +798,37 @@ function test_large_objective_coef_quad()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Min, 1e+9 * x^2)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variables(ret[], model) == [x, x]
-    @test_broken ModelAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `LargeObjectiveQuadraticCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeObjectiveQuadraticCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Variable -- Variable): (")
     @test contains(str, " with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -839,38 +839,38 @@ function test_small_matrix_coef_quad()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 1e-9 * x^2 + x <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variables(ret[], model) == [x, x]
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test_broken ModelAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e-9 # 2e-9 TODO, what to return here
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `SmallMatrixQuadraticCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# SmallMatrixQuadraticCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Constraint -- Variable -- Variable): (")
     @test contains(str, ") with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -881,38 +881,38 @@ function test_large_matrix_coef_quad()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, 1e+9 * x^2 <= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variables(ret[], model) == [x, x]
-    @test ModelAnalyzer.constraint(ret[], model) == c
-    @test_broken ModelAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e+9 # 2e+9 TODO, what to return here
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
     )
     str = String(take!(buf))
     @test startswith(str, "# `LargeMatrixQuadraticCoefficient`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# LargeMatrixQuadraticCoefficient"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "(Constraint -- Variable -- Variable): (")
     @test contains(str, ") with coefficient ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test contains(str, " -- ")
     @test contains(str, " : ")
@@ -924,34 +924,34 @@ function test_objective_nonconvex()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Max, x^2)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
     )
     @test length(ret) == 1
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
     )
     str = String(take!(buf))
     @test startswith(str, "# `NonconvexQuadraticObjective`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# NonconvexQuadraticObjective"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Objective is Nonconvex quadratic")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test startswith(str, "Objective is Nonconvex quadratic")
     return
@@ -962,34 +962,34 @@ function test_objective_nonconvex_2()
     @variable(model, x <= 1)
     @constraint(model, 3 * x <= 4)
     @objective(model, Min, -x^2)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
     )
     @test length(ret) == 1
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
     )
     str = String(take!(buf))
     @test startswith(str, "# `NonconvexQuadraticObjective`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticObjective,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticObjective,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# NonconvexQuadraticObjective"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Objective is Nonconvex quadratic")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     @test startswith(str, "Objective is Nonconvex quadratic")
     return
@@ -999,43 +999,43 @@ function test_constraint_nonconvex()
     model = Model()
     @variable(model, x <= 1)
     @constraint(model, c, x^2 >= 4)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.constraint(ret[], model) == c
     #
     buf = IOBuffer()
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint,
     )
     str = String(take!(buf))
     @test startswith(str, "# `NonconvexQuadraticConstraint`")
-    ModelAnalyzer.summarize(
+    MathOptAnalyzer.summarize(
         buf,
-        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint,
         verbose = false,
     )
     str = String(take!(buf))
     @test str == "# NonconvexQuadraticConstraint"
     #
-    ModelAnalyzer.summarize(buf, ret[1], verbose = true)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
     str = String(take!(buf))
     @test startswith(str, "Constraint: ")
-    ModelAnalyzer.summarize(buf, ret[1], verbose = false)
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
     str = String(take!(buf))
     return
 end
 
 function test_empty_model()
     model = Model()
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -1044,15 +1044,15 @@ function test_nonconvex_zeros()
     model = Model()
     @variable(model, x[1:1])
     @constraint(model, c, [x[1] * x[1]] in Zeros())
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.NonconvexQuadraticConstraint,
+        MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.constraint(ret[], model) == c
     return
 end
 
@@ -1063,24 +1063,24 @@ function test_vi_in_nonstandard_set()
     @constraint(model, c1, 3x[1] + 1e-9 in MOI.ZeroOne())
     @constraint(model, c2, 4x[1] - 1e+9 in MOI.ZeroOne())
     @constraint(model, c3, 2x[1] == 0)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 2
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallRHSCoefficient,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c1
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.constraint(ret[], model) == c1
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeRHSCoefficient,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c2
-    @test ModelAnalyzer.value(ret[]) == -1e+9
+    @test MathOptAnalyzer.constraint(ret[], model) == c2
+    @test MathOptAnalyzer.value(ret[]) == -1e+9
     return
 end
 
@@ -1088,8 +1088,8 @@ function test_saf_in_nonstandard_set()
     model = Model()
     @variable(model, x[1:1])
     @constraint(model, c, 2x[1] in MOI.ZeroOne())
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -1098,8 +1098,8 @@ function test_vaf_in_nonstandard_set()
     model = Model()
     @variable(model, x[1:1])
     @constraint(model, c, [2x[1], x[1], x[1]] in SecondOrderCone())
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     return
 end
@@ -1113,52 +1113,52 @@ function test_vector_functions()
     @constraint(model, c4, [-1e-9 * x[1] * x[1]] in Nonnegatives())
     @constraint(model, c5, [1e+9 * x[1] * x[1]] in Nonnegatives())
     @constraint(model, c6, [2 * x[1] * x[1]] in Zeros())
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 6
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallMatrixCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c1
-    @test ModelAnalyzer.variable(ret[], model) == x[1]
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.constraint(ret[], model) == c1
+    @test MathOptAnalyzer.variable(ret[], model) == x[1]
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeMatrixCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c2
-    @test ModelAnalyzer.variable(ret[], model) == x[1]
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.constraint(ret[], model) == c2
+    @test MathOptAnalyzer.variable(ret[], model) == x[1]
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c4
-    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
-    @test_broken ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.constraint(ret[], model) == c4
+    @test MathOptAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e-9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
+        MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.constraint(ret[], model) == c5
-    @test ModelAnalyzer.variables(ret[], model) == [x[1], x[1]]
-    @test_broken ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.constraint(ret[], model) == c5
+    @test MathOptAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test_broken MathOptAnalyzer.value(ret[]) == 1e+9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x[3]
+    @test MathOptAnalyzer.variable(ret[], model) == x[3]
     return
 end
 
@@ -1166,31 +1166,31 @@ function test_variable_interval()
     model = Model()
     @variable(model, x in MOI.Interval(1e-9, 1e+9))
     @objective(model, Min, x)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 3
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.SmallBoundCoefficient,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e-9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
-    @test ModelAnalyzer.value(ret[]) == 1e+9
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.VariableNotInConstraints,
+        MathOptAnalyzer.Numerical.VariableNotInConstraints,
     )
     @test length(ret) == 1
-    @test ModelAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.variable(ret[], model) == x
     return
 end
 
@@ -1221,23 +1221,23 @@ function test_many()
 
     @objective(model, Max, 1e8 * x + 8e-11 * y)
 
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
 
     buf = IOBuffer()
     Base.show(buf, data)
     str = String(take!(buf))
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, data)
-    ModelAnalyzer.summarize(buf, data, verbose = false)
+    MathOptAnalyzer.summarize(buf, data)
+    MathOptAnalyzer.summarize(buf, data, verbose = false)
 
     redirect_stdout(devnull) do
-        ModelAnalyzer.summarize(data)
-        list = ModelAnalyzer.list_of_issue_types(data)
-        ModelAnalyzer.summarize(list[1])
-        issues = ModelAnalyzer.list_of_issues(data, list[1])
-        ModelAnalyzer.summarize(issues)
-        ModelAnalyzer.summarize(issues[1])
+        MathOptAnalyzer.summarize(data)
+        list = MathOptAnalyzer.list_of_issue_types(data)
+        MathOptAnalyzer.summarize(list[1])
+        issues = MathOptAnalyzer.list_of_issues(data, list[1])
+        MathOptAnalyzer.summarize(issues)
+        MathOptAnalyzer.summarize(issues[1])
         return
     end
 
@@ -1259,15 +1259,15 @@ function test_nonconvex_qp()
     @constraint(model, x * y >= 4) # bad 7
     @objective(model, Max, y * x)
 
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
 
     buf = IOBuffer()
     Base.show(buf, data)
     str = String(take!(buf))
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, data)
-    ModelAnalyzer.summarize(buf, data, verbose = false)
+    MathOptAnalyzer.summarize(buf, data)
+    MathOptAnalyzer.summarize(buf, data, verbose = false)
 
     return
 end
@@ -1279,18 +1279,18 @@ function test_qp_range()
     @constraint(model, c, 1e-7 * x^2 + 7e8 * y * y <= 4)
     @objective(model, Min, 3e-7 * x * x + 2e12 * y * y)
 
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
 
     buf = IOBuffer()
     Base.show(buf, data)
     str = String(take!(buf))
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, data)
-    ModelAnalyzer.summarize(buf, data, verbose = false)
+    MathOptAnalyzer.summarize(buf, data)
+    MathOptAnalyzer.summarize(buf, data, verbose = false)
 
     open("my_report.txt", "w") do io
-        return ModelAnalyzer.summarize(io, data)
+        return MathOptAnalyzer.summarize(io, data)
     end
 
     file_data = read("my_report.txt", String)
@@ -1302,17 +1302,17 @@ end
 function test_more_than_max_issues()
     model = Model()
     @variable(model, xg[1:20] <= 2e9)
-    data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
-    list = ModelAnalyzer.list_of_issue_types(data)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) >= 1
-    ret = ModelAnalyzer.list_of_issues(
+    ret = MathOptAnalyzer.list_of_issues(
         data,
-        ModelAnalyzer.Numerical.LargeBoundCoefficient,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 20
 
     buf = IOBuffer()
-    ModelAnalyzer.summarize(buf, data)
+    MathOptAnalyzer.summarize(buf, data)
     str = String(take!(buf))
     @test occursin("Showing first ", str)
     @test occursin(" issues ommitted)\n\n", str)

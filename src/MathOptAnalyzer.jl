@@ -3,7 +3,7 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-module ModelAnalyzer
+module MathOptAnalyzer
 
 import MathOptInterface as MOI
 
@@ -227,4 +227,4 @@ include("Numerical/Numerical.jl")
 include("Feasibility/Feasibility.jl")
 include("Infeasibility/Infeasibility.jl")
 
-end  # module ModelAnalyzer
+end  # module MathOptAnalyzer

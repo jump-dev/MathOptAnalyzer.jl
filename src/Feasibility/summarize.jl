@@ -3,42 +3,42 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-function ModelAnalyzer._summarize(io::IO, ::Type{PrimalViolation})
+function MathOptAnalyzer._summarize(io::IO, ::Type{PrimalViolation})
     return print(io, "# PrimalViolation")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{DualConstraintViolation})
+function MathOptAnalyzer._summarize(io::IO, ::Type{DualConstraintViolation})
     return print(io, "# DualConstraintViolation")
 end
 
-function ModelAnalyzer._summarize(
+function MathOptAnalyzer._summarize(
     io::IO,
     ::Type{DualConstrainedVariableViolation},
 )
     return print(io, "# DualConstrainedVariableViolation")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{ComplemetarityViolation})
+function MathOptAnalyzer._summarize(io::IO, ::Type{ComplemetarityViolation})
     return print(io, "# ComplemetarityViolation")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{DualObjectiveMismatch})
+function MathOptAnalyzer._summarize(io::IO, ::Type{DualObjectiveMismatch})
     return print(io, "# DualObjectiveMismatch")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{PrimalObjectiveMismatch})
+function MathOptAnalyzer._summarize(io::IO, ::Type{PrimalObjectiveMismatch})
     return print(io, "# PrimalObjectiveMismatch")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{PrimalDualMismatch})
+function MathOptAnalyzer._summarize(io::IO, ::Type{PrimalDualMismatch})
     return print(io, "# PrimalDualMismatch")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{PrimalDualSolverMismatch})
+function MathOptAnalyzer._summarize(io::IO, ::Type{PrimalDualSolverMismatch})
     return print(io, "# PrimalDualSolverMismatch")
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
+function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
     return print(
         io,
         """
@@ -77,7 +77,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalViolation})
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{DualConstraintViolation},
 )
@@ -118,7 +118,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{DualConstrainedVariableViolation},
 )
@@ -165,7 +165,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{ComplemetarityViolation},
 )
@@ -209,7 +209,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, ::Type{DualObjectiveMismatch})
+function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{DualObjectiveMismatch})
     return print(
         io,
         """
@@ -244,7 +244,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{DualObjectiveMismatch})
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{PrimalObjectiveMismatch},
 )
@@ -282,7 +282,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalDualMismatch})
+function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{PrimalDualMismatch})
     return print(
         io,
         """
@@ -314,7 +314,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{PrimalDualMismatch})
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{PrimalDualSolverMismatch},
 )
@@ -345,77 +345,77 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::PrimalViolation, model)
+function MathOptAnalyzer._summarize(io::IO, issue::PrimalViolation, model)
     return print(
         io,
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " : ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::DualConstraintViolation, model)
+function MathOptAnalyzer._summarize(io::IO, issue::DualConstraintViolation, model)
     return print(
         io,
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " : ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._summarize(
+function MathOptAnalyzer._summarize(
     io::IO,
     issue::DualConstrainedVariableViolation,
     model,
 )
     return print(
         io,
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " : ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::ComplemetarityViolation, model)
+function MathOptAnalyzer._summarize(io::IO, issue::ComplemetarityViolation, model)
     return print(
         io,
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " : ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::DualObjectiveMismatch, model)
-    return ModelAnalyzer._verbose_summarize(io, issue, model)
+function MathOptAnalyzer._summarize(io::IO, issue::DualObjectiveMismatch, model)
+    return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::PrimalObjectiveMismatch, model)
-    return ModelAnalyzer._verbose_summarize(io, issue, model)
+function MathOptAnalyzer._summarize(io::IO, issue::PrimalObjectiveMismatch, model)
+    return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::PrimalDualMismatch, model)
-    return ModelAnalyzer._verbose_summarize(io, issue, model)
+function MathOptAnalyzer._summarize(io::IO, issue::PrimalDualMismatch, model)
+    return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function ModelAnalyzer._summarize(
+function MathOptAnalyzer._summarize(
     io::IO,
     issue::PrimalDualSolverMismatch,
     model,
 )
-    return ModelAnalyzer._verbose_summarize(io, issue, model)
+    return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, issue::PrimalViolation, model)
+function MathOptAnalyzer._verbose_summarize(io::IO, issue::PrimalViolation, model)
     return print(
         io,
         "Constraint ",
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " has primal violation ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::DualConstraintViolation,
     model,
@@ -423,13 +423,13 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Variables ",
-        ModelAnalyzer._name.(issue.ref, model),
+        MathOptAnalyzer._name.(issue.ref, model),
         " have dual violation ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::DualConstrainedVariableViolation,
     model,
@@ -437,13 +437,13 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Constraint ",
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " has dual violation ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::ComplemetarityViolation,
     model,
@@ -451,13 +451,13 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Constraint ",
-        ModelAnalyzer._name(issue.ref, model),
+        MathOptAnalyzer._name(issue.ref, model),
         " has complementarty violation ",
         issue.violation,
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::DualObjectiveMismatch,
     model,
@@ -472,7 +472,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::PrimalObjectiveMismatch,
     model,
@@ -487,7 +487,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::PrimalDualMismatch,
     model,
@@ -502,7 +502,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::PrimalDualSolverMismatch,
     model,
@@ -517,54 +517,54 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{PrimalViolation})
+function MathOptAnalyzer.list_of_issues(data::Data, ::Type{PrimalViolation})
     return data.primal
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{DualConstraintViolation},
 )
     return data.dual
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{DualConstrainedVariableViolation},
 )
     return data.dual_convar
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{ComplemetarityViolation},
 )
     return data.complementarity
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{DualObjectiveMismatch})
+function MathOptAnalyzer.list_of_issues(data::Data, ::Type{DualObjectiveMismatch})
     return data.dual_objective_mismatch
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{PrimalObjectiveMismatch},
 )
     return data.primal_objective_mismatch
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{PrimalDualMismatch})
+function MathOptAnalyzer.list_of_issues(data::Data, ::Type{PrimalDualMismatch})
     return data.primal_dual_mismatch
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{PrimalDualSolverMismatch},
 )
     return data.primal_dual_solver_mismatch
 end
 
-function ModelAnalyzer.list_of_issue_types(data::Data)
+function MathOptAnalyzer.list_of_issue_types(data::Data)
     ret = Type[]
     for type in (
         PrimalViolation,
@@ -576,7 +576,7 @@ function ModelAnalyzer.list_of_issue_types(data::Data)
         PrimalDualMismatch,
         PrimalDualSolverMismatch,
     )
-        if !isempty(ModelAnalyzer.list_of_issues(data, type))
+        if !isempty(MathOptAnalyzer.list_of_issues(data, type))
             push!(ret, type)
         end
     end
@@ -591,12 +591,12 @@ function summarize_configurations(io::IO, data::Data)
     return
 end
 
-function ModelAnalyzer.summarize(
+function MathOptAnalyzer.summarize(
     io::IO,
     data::Data;
     model = nothing,
     verbose = true,
-    max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
+    max_issues = MathOptAnalyzer.DEFAULT_MAX_ISSUES,
     configurations = true,
 )
     print(io, "## Feasibility Analysis\n\n")
@@ -606,10 +606,10 @@ function ModelAnalyzer.summarize(
     end
     # add maximum primal, dual and compl
     # add sum of primal, dual and compl
-    for issue_type in ModelAnalyzer.list_of_issue_types(data)
-        issues = ModelAnalyzer.list_of_issues(data, issue_type)
+    for issue_type in MathOptAnalyzer.list_of_issue_types(data)
+        issues = MathOptAnalyzer.list_of_issues(data, issue_type)
         print(io, "\n\n")
-        ModelAnalyzer.summarize(
+        MathOptAnalyzer.summarize(
             io,
             issues,
             model = model,
@@ -622,8 +622,8 @@ end
 
 function Base.show(io::IO, data::Data)
     n = sum(
-        length(ModelAnalyzer.list_of_issues(data, T)) for
-        T in ModelAnalyzer.list_of_issue_types(data);
+        length(MathOptAnalyzer.list_of_issues(data, T)) for
+        T in MathOptAnalyzer.list_of_issue_types(data);
         init = 0,
     )
     return print(io, "Feasibility analysis found $n issues")

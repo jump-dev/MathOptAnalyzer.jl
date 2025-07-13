@@ -6,7 +6,7 @@
 module Infeasibility
 
 import MathOptInterface as MOI
-import ModelAnalyzer
+import MathOptAnalyzer
 
 include("intervals.jl")
 include("_eval_variables.jl")

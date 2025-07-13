@@ -1,11 +1,11 @@
 ```@meta
-CurrentModule = ModelAnalyzer
+CurrentModule = MathOptAnalyzer
 DocTestSetup = quote
-    using ModelAnalyzer
+    using MathOptAnalyzer
 end
 ```
 
-# ModelAnalyzer.jl
+# MathOptAnalyzer.jl
 
 This package provides tools for analyzing (and debugging)
 [JuMP](https://github.com/jump-dev/JuMP.jl) models.
@@ -39,7 +39,7 @@ run:
 
 ```julia
 using Pkg
-Pkg.add(url = "https://github.com/jump-dev/ModelAnalyzer.jl")
+Pkg.add(url = "https://github.com/jump-dev/MathOptAnalyzer.jl")
 ```
 
 ## Usage
@@ -50,7 +50,7 @@ Here is a simple example of how to use the package:
 
 ```julia
 using JuMP
-using ModelAnalyzer
+using MathOptAnalyzer
 using HiGHS # or any other supported solver
 # Create a simple JuMP model
 model = Model(HiGHS.Optimizer)
@@ -65,39 +65,39 @@ optimize!(model)
 # either
 
 # Perform a numerical analysis of the model
-data = ModelAnalyzer.analyze(ModelAnalyzer.Numerical.Analyzer(), model)
+data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
 # print report
-ModelAnalyzer.summarize(data)
+MathOptAnalyzer.summarize(data)
 
 # or
 
 # Check for solution feasibility and optimality
-data = ModelAnalyzer.analyze(ModelAnalyzer.Feasibility.Analyzer(), model)
+data = MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
 # print report
-ModelAnalyzer.summarize(data)
+MathOptAnalyzer.summarize(data)
 
 # or
 
 # Infeasibility analysis (if the model was infeasible)
-data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Infeasibility.Analyzer(),
+data = MathOptAnalyzer.analyze(
+    MathOptAnalyzer.Infeasibility.Analyzer(),
     model,
     optimizer = HiGHS.Optimizer,
 )
 
 # print report to the screen
-ModelAnalyzer.summarize(data)
+MathOptAnalyzer.summarize(data)
 
 # or print the report to a file
 
 # open a file
 open("my_report.txt", "w") do io
     # print report
-    ModelAnalyzer.summarize(io, data)
+    MathOptAnalyzer.summarize(io, data)
 end
 ```
 
-The `ModelAnalyzer.analyze(...)` function can always take the keyword arguments:
+The `MathOptAnalyzer.analyze(...)` function can always take the keyword arguments:
  * `verbose = false` to condense the print output.
  * `max_issues = n` to limit the maximum number of issues to report for each
    type.
@@ -107,27 +107,27 @@ arguments.
 
 ### Advanced usage
 
-After any `ModelAnalyzer.analyze(...)` call is performed, the resulting data
-structure can be summarized using `ModelAnalyzer.summarize(data)` as show above,
+After any `MathOptAnalyzer.analyze(...)` call is performed, the resulting data
+structure can be summarized using `MathOptAnalyzer.summarize(data)` as show above,
 or it can be further inspected programmatically.
 
 ```julia
-# given a `data` object obtained from `ModelAnalyzer.analyze(...)`
+# given a `data` object obtained from `MathOptAnalyzer.analyze(...)`
 
 # query the types of issues found in the analysis
-list = ModelAnalyzer.list_of_issue_types(data)
+list = MathOptAnalyzer.list_of_issue_types(data)
 
 # information about the types of issues found can be printed out
-ModelAnalyzer.summarize(list[1])
+MathOptAnalyzer.summarize(list[1])
 
 # for each issue type, you can get the actual issues found in the analysis
-issues = ModelAnalyzer.list_of_issues(data, list[1])
+issues = MathOptAnalyzer.list_of_issues(data, list[1])
 
 # the list of issues of the given type can be summarized with:
-ModelAnalyzer.summarize(issues)
+MathOptAnalyzer.summarize(issues)
 
 # individual issues can also be summarized
-ModelAnalyzer.summarize(issues[1])
+MathOptAnalyzer.summarize(issues[1])
 ```
 
 ### Non JuMP (or MOI) models

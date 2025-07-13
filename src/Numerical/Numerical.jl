@@ -7,7 +7,7 @@ module Numerical
 
 import LinearAlgebra
 import MathOptInterface as MOI
-import ModelAnalyzer
+import MathOptAnalyzer
 import Printf
 
 include("structs.jl")

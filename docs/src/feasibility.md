@@ -5,30 +5,30 @@ This module provides functionality to perform feasibility analysis on a JuMP mod
 This module follows the main API and is activated by the struct:
 
 ```@docs
-ModelAnalyzer.Feasibility.Analyzer
+MathOptAnalyzer.Feasibility.Analyzer
 ```
 
 The analysis will return issues of the abstract type:
 
 ```@docs
-ModelAnalyzer.Feasibility.AbstractFeasibilityIssue
+MathOptAnalyzer.Feasibility.AbstractFeasibilityIssue
 ```
 Specifically, the possible issues are:
 
 ```@docs
-ModelAnalyzer.Feasibility.PrimalViolation
-ModelAnalyzer.Feasibility.DualConstraintViolation
-ModelAnalyzer.Feasibility.DualConstrainedVariableViolation
-ModelAnalyzer.Feasibility.ComplemetarityViolation
-ModelAnalyzer.Feasibility.DualObjectiveMismatch
-ModelAnalyzer.Feasibility.PrimalObjectiveMismatch
-ModelAnalyzer.Feasibility.PrimalDualMismatch
-ModelAnalyzer.Feasibility.PrimalDualSolverMismatch
+MathOptAnalyzer.Feasibility.PrimalViolation
+MathOptAnalyzer.Feasibility.DualConstraintViolation
+MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation
+MathOptAnalyzer.Feasibility.ComplemetarityViolation
+MathOptAnalyzer.Feasibility.DualObjectiveMismatch
+MathOptAnalyzer.Feasibility.PrimalObjectiveMismatch
+MathOptAnalyzer.Feasibility.PrimalDualMismatch
+MathOptAnalyzer.Feasibility.PrimalDualSolverMismatch
 ```
 
 These issues are saved in the data structure that is returned from the
-`ModelAnalyzer.analyze` function:
+`MathOptAnalyzer.analyze` function:
 
 ```@docs
-ModelAnalyzer.Feasibility.Data
+MathOptAnalyzer.Feasibility.Data
 ```

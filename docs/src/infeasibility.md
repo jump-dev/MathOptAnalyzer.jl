@@ -5,27 +5,27 @@ This module provides functionality to perform infeasibility analysis on a JuMP m
 This module follows the main API and is activated by the struct:
 
 ```@docs
-ModelAnalyzer.Infeasibility.Analyzer
+MathOptAnalyzer.Infeasibility.Analyzer
 ```
 
 The analysis will return issues of the abstract type:
 
 ```@docs
-ModelAnalyzer.Infeasibility.AbstractInfeasibilitylIssue
+MathOptAnalyzer.Infeasibility.AbstractInfeasibilitylIssue
 ```
 
 Specifically, the possible issues are:
 
 ```@docs
-ModelAnalyzer.Infeasibility.InfeasibleBounds
-ModelAnalyzer.Infeasibility.InfeasibleIntegrality
-ModelAnalyzer.Infeasibility.InfeasibleConstraintRange
-ModelAnalyzer.Infeasibility.IrreducibleInfeasibleSubset
+MathOptAnalyzer.Infeasibility.InfeasibleBounds
+MathOptAnalyzer.Infeasibility.InfeasibleIntegrality
+MathOptAnalyzer.Infeasibility.InfeasibleConstraintRange
+MathOptAnalyzer.Infeasibility.IrreducibleInfeasibleSubset
 ```
 
 These issues are saved in the data structure that is returned from the
-`ModelAnalyzer.analyze` function:
+`MathOptAnalyzer.analyze` function:
 
 ```@docs
-ModelAnalyzer.Infeasibility.Data
+MathOptAnalyzer.Infeasibility.Data
 ```

@@ -4,13 +4,13 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 """
-    Analyzer() <: ModelAnalyzer.AbstractAnalyzer
+    Analyzer() <: MathOptAnalyzer.AbstractAnalyzer
 
 The `Analyzer` type is used to perform infeasibility analysis on a model.
 
 ## Example
 ```julia
-julia> data = ModelAnalyzer.analyze(
+julia> data = MathOptAnalyzer.analyze(
     Analyzer(),
     model,
     optimizer = nothing,,
@@ -20,7 +20,7 @@ julia> data = ModelAnalyzer.analyze(
 The additional keyword argument `optimizer` is used to specify the optimizer to
 use for the IIS resolver.
 """
-struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
+struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
 """
     AbstractInfeasibilitylIssue
@@ -28,7 +28,7 @@ struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
 Abstract type for infeasibility issues found during the analysis of a
 model.
 """
-abstract type AbstractInfeasibilitylIssue <: ModelAnalyzer.AbstractIssue end
+abstract type AbstractInfeasibilitylIssue <: MathOptAnalyzer.AbstractIssue end
 
 """
     InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
@@ -38,7 +38,7 @@ that is greater than its upper bound.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Infeasibility.InfeasibleBounds)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Infeasibility.InfeasibleBounds)
 ````
 """
 struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
@@ -47,9 +47,9 @@ struct InfeasibleBounds{T} <: AbstractInfeasibilitylIssue
     ub::T
 end
 
-ModelAnalyzer.variable(issue::InfeasibleBounds) = issue.variable
+MathOptAnalyzer.variable(issue::InfeasibleBounds) = issue.variable
 
-ModelAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
+MathOptAnalyzer.values(issue::InfeasibleBounds) = [issue.lb, issue.ub]
 
 """
     InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
@@ -61,8 +61,8 @@ integer value to be feasible.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Infeasibility.InfeasibleIntegrality
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Infeasibility.InfeasibleIntegrality
 )
 ```
 """
@@ -73,11 +73,11 @@ struct InfeasibleIntegrality{T} <: AbstractInfeasibilitylIssue
     set::Union{MOI.Integer,MOI.ZeroOne}#, MOI.Semicontinuous{T}, MOI.Semiinteger{T}}
 end
 
-ModelAnalyzer.variable(issue::InfeasibleIntegrality) = issue.variable
+MathOptAnalyzer.variable(issue::InfeasibleIntegrality) = issue.variable
 
-ModelAnalyzer.values(issue::InfeasibleIntegrality) = [issue.lb, issue.ub]
+MathOptAnalyzer.values(issue::InfeasibleIntegrality) = [issue.lb, issue.ub]
 
-ModelAnalyzer.set(issue::InfeasibleIntegrality) = issue.set
+MathOptAnalyzer.set(issue::InfeasibleIntegrality) = issue.set
 
 """
     InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
@@ -91,8 +91,8 @@ no issues of type `InfeasibleBounds` were found in the first layer of analysis.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Infeasibility.InfeasibleConstraintRange
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Infeasibility.InfeasibleConstraintRange
 )
 ```
 """
@@ -103,11 +103,11 @@ struct InfeasibleConstraintRange{T} <: AbstractInfeasibilitylIssue
     set::Union{MOI.EqualTo{T},MOI.LessThan{T},MOI.GreaterThan{T}}
 end
 
-ModelAnalyzer.constraint(issue::InfeasibleConstraintRange) = issue.constraint
+MathOptAnalyzer.constraint(issue::InfeasibleConstraintRange) = issue.constraint
 
-ModelAnalyzer.values(issue::InfeasibleConstraintRange) = [issue.lb, issue.ub]
+MathOptAnalyzer.values(issue::InfeasibleConstraintRange) = [issue.lb, issue.ub]
 
-ModelAnalyzer.set(issue::InfeasibleConstraintRange) = issue.set
+MathOptAnalyzer.set(issue::InfeasibleConstraintRange) = issue.set
 
 """
     IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
@@ -120,8 +120,8 @@ were found.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Infeasibility.IrreducibleInfeasibleSubset
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Infeasibility.IrreducibleInfeasibleSubset
 )
 ```
 """
@@ -129,17 +129,17 @@ struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
     constraint::Vector{<:MOI.ConstraintIndex}
 end
 
-ModelAnalyzer.constraints(issue::IrreducibleInfeasibleSubset) = issue.constraint
+MathOptAnalyzer.constraints(issue::IrreducibleInfeasibleSubset) = issue.constraint
 
 """
-    Data <: ModelAnalyzer.AbstractData
+    Data <: MathOptAnalyzer.AbstractData
 
 The `Data` type is used to store the results of the infeasibility analysis.
 This type contains vectors of the various infeasibility issues found during
 the analysis, including `InfeasibleBounds`, `InfeasibleIntegrality`,
 `InfeasibleConstraintRange`, and `IrreducibleInfeasibleSubset`.
 """
-Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
+Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
     infeasible_bounds::Vector{InfeasibleBounds} = InfeasibleBounds[]
     infeasible_integrality::Vector{InfeasibleIntegrality} =
         InfeasibleIntegrality[]

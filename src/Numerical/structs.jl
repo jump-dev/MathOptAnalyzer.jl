@@ -4,7 +4,7 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 """
-    Analyzer() <: ModelAnalyzer.AbstractAnalyzer
+    Analyzer() <: MathOptAnalyzer.AbstractAnalyzer
 
 The `Analyzer` type is used to analyze the coefficients of a model for
 numerical issues.
@@ -12,8 +12,8 @@ numerical issues.
 ## Example
 
 ```julia
-julia> data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Numerical.Analyzer(),
+julia> data = MathOptAnalyzer.analyze(
+    MathOptAnalyzer.Numerical.Analyzer(),
     model;
     threshold_dense_fill_in = 0.10,
     threshold_dense_entries = 1000,
@@ -31,14 +31,14 @@ The additional parameters:
 - `threshold_large`: The threshold for large coefficients in the model.
 
 """
-struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
+struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
 """
     AbstractNumericalIssue <: AbstractNumericalIssue
 
 Abstract type for numerical issues found during the analysis of a model.
 """
-abstract type AbstractNumericalIssue <: ModelAnalyzer.AbstractIssue end
+abstract type AbstractNumericalIssue <: MathOptAnalyzer.AbstractIssue end
 
 """
     VariableNotInConstraints <: AbstractNumericalIssue
@@ -48,14 +48,14 @@ constraints.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableNotInConstraints)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.VariableNotInConstraints)
 ```
 """
 struct VariableNotInConstraints <: AbstractNumericalIssue
     ref::MOI.VariableIndex
 end
 
-ModelAnalyzer.variable(issue::VariableNotInConstraints) = issue.ref
+MathOptAnalyzer.variable(issue::VariableNotInConstraints) = issue.ref
 
 """
     EmptyConstraint <: AbstractNumericalIssue
@@ -65,14 +65,14 @@ different from zero.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.EmptyConstraint)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.EmptyConstraint)
 ```
 """
 struct EmptyConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
 
-ModelAnalyzer.constraint(issue::EmptyConstraint) = issue.ref
+MathOptAnalyzer.constraint(issue::EmptyConstraint) = issue.ref
 
 """
     VariableBoundAsConstraint <: AbstractNumericalIssue
@@ -83,14 +83,14 @@ coefficient, and this coefficient is equal to one.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.VariableBoundAsConstraint)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.VariableBoundAsConstraint)
 ```
 """
 struct VariableBoundAsConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
 
-ModelAnalyzer.constraint(issue::VariableBoundAsConstraint) = issue.ref
+MathOptAnalyzer.constraint(issue::VariableBoundAsConstraint) = issue.ref
 
 """
     DenseConstraint <: AbstractNumericalIssue
@@ -101,7 +101,7 @@ non-zero entries is greater than `threshold_dense_entries`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.DenseConstraint)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.DenseConstraint)
 ```
 """
 struct DenseConstraint <: AbstractNumericalIssue
@@ -109,9 +109,9 @@ struct DenseConstraint <: AbstractNumericalIssue
     nnz::Int
 end
 
-ModelAnalyzer.constraint(issue::DenseConstraint) = issue.ref
+MathOptAnalyzer.constraint(issue::DenseConstraint) = issue.ref
 
-ModelAnalyzer.value(issue::DenseConstraint) = issue.nnz
+MathOptAnalyzer.value(issue::DenseConstraint) = issue.nnz
 
 """
     SmallMatrixCoefficient <: AbstractNumericalIssue
@@ -121,7 +121,7 @@ constraint is smaller than `threshold_small`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallMatrixCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.SmallMatrixCoefficient)
 ```
 """
 struct SmallMatrixCoefficient <: AbstractNumericalIssue
@@ -130,11 +130,11 @@ struct SmallMatrixCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::SmallMatrixCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::SmallMatrixCoefficient) = issue.variable
 
-ModelAnalyzer.constraint(issue::SmallMatrixCoefficient) = issue.ref
+MathOptAnalyzer.constraint(issue::SmallMatrixCoefficient) = issue.ref
 
-ModelAnalyzer.value(issue::SmallMatrixCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::SmallMatrixCoefficient) = issue.coefficient
 
 """
     LargeMatrixCoefficient <: AbstractNumericalIssue
@@ -144,7 +144,7 @@ constraint is larger than `threshold_large`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeMatrixCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.LargeMatrixCoefficient)
 ```
 """
 struct LargeMatrixCoefficient <: AbstractNumericalIssue
@@ -153,11 +153,11 @@ struct LargeMatrixCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::LargeMatrixCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::LargeMatrixCoefficient) = issue.variable
 
-ModelAnalyzer.constraint(issue::LargeMatrixCoefficient) = issue.ref
+MathOptAnalyzer.constraint(issue::LargeMatrixCoefficient) = issue.ref
 
-ModelAnalyzer.value(issue::LargeMatrixCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::LargeMatrixCoefficient) = issue.coefficient
 
 """
     SmallBoundCoefficient <: AbstractNumericalIssue
@@ -167,7 +167,7 @@ The `SmallBoundCoefficient` issue is identified when a variable's bound
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallBoundCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.SmallBoundCoefficient)
 ```
 """
 struct SmallBoundCoefficient <: AbstractNumericalIssue
@@ -175,9 +175,9 @@ struct SmallBoundCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::SmallBoundCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::SmallBoundCoefficient) = issue.variable
 
-ModelAnalyzer.value(issue::SmallBoundCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::SmallBoundCoefficient) = issue.coefficient
 
 """
     LargeBoundCoefficient <: AbstractNumericalIssue
@@ -187,7 +187,7 @@ The `LargeBoundCoefficient` issue is identified when a variable's bound
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeBoundCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.LargeBoundCoefficient)
 ```
 """
 struct LargeBoundCoefficient <: AbstractNumericalIssue
@@ -195,9 +195,9 @@ struct LargeBoundCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::LargeBoundCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::LargeBoundCoefficient) = issue.variable
 
-ModelAnalyzer.value(issue::LargeBoundCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::LargeBoundCoefficient) = issue.coefficient
 
 """
     SmallRHSCoefficient <: AbstractNumericalIssue
@@ -207,7 +207,7 @@ coefficient of a constraint is smaller than `threshold_small`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallRHSCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.SmallRHSCoefficient)
 ```
 """
 struct SmallRHSCoefficient <: AbstractNumericalIssue
@@ -215,9 +215,9 @@ struct SmallRHSCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.constraint(issue::SmallRHSCoefficient) = issue.ref
+MathOptAnalyzer.constraint(issue::SmallRHSCoefficient) = issue.ref
 
-ModelAnalyzer.value(issue::SmallRHSCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::SmallRHSCoefficient) = issue.coefficient
 
 """
     LargeRHSCoefficient <: AbstractNumericalIssue
@@ -227,7 +227,7 @@ coefficient of a constraint is larger than `threshold_large`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeRHSCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.LargeRHSCoefficient)
 ```
 """
 struct LargeRHSCoefficient <: AbstractNumericalIssue
@@ -235,9 +235,9 @@ struct LargeRHSCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.constraint(issue::LargeRHSCoefficient) = issue.ref
+MathOptAnalyzer.constraint(issue::LargeRHSCoefficient) = issue.ref
 
-ModelAnalyzer.value(issue::LargeRHSCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::LargeRHSCoefficient) = issue.coefficient
 
 """
     SmallObjectiveCoefficient <: AbstractNumericalIssue
@@ -247,7 +247,7 @@ objective function is smaller than `threshold_small`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.SmallObjectiveCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.SmallObjectiveCoefficient)
 ```
 """
 struct SmallObjectiveCoefficient <: AbstractNumericalIssue
@@ -255,9 +255,9 @@ struct SmallObjectiveCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::SmallObjectiveCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::SmallObjectiveCoefficient) = issue.variable
 
-ModelAnalyzer.value(issue::SmallObjectiveCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::SmallObjectiveCoefficient) = issue.coefficient
 
 """
     LargeObjectiveCoefficient <: AbstractNumericalIssue
@@ -267,7 +267,7 @@ objective function is larger than `threshold_large`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Numerical.LargeObjectiveCoefficient)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Numerical.LargeObjectiveCoefficient)
 ```
 """
 struct LargeObjectiveCoefficient <: AbstractNumericalIssue
@@ -275,9 +275,9 @@ struct LargeObjectiveCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-ModelAnalyzer.variable(issue::LargeObjectiveCoefficient) = issue.variable
+MathOptAnalyzer.variable(issue::LargeObjectiveCoefficient) = issue.variable
 
-ModelAnalyzer.value(issue::LargeObjectiveCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::LargeObjectiveCoefficient) = issue.coefficient
 
 """
     SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
@@ -287,8 +287,8 @@ coefficient in the objective function is smaller than `threshold_small`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.SmallObjectiveQuadraticCoefficient
 )
 ```
 """
@@ -298,11 +298,11 @@ struct SmallObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-function ModelAnalyzer.variables(issue::SmallObjectiveQuadraticCoefficient)
+function MathOptAnalyzer.variables(issue::SmallObjectiveQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
 
-function ModelAnalyzer.value(issue::SmallObjectiveQuadraticCoefficient)
+function MathOptAnalyzer.value(issue::SmallObjectiveQuadraticCoefficient)
     return issue.coefficient
 end
 
@@ -314,8 +314,8 @@ coefficient in the objective function is larger than `threshold_large`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeObjectiveQuadraticCoefficient
 )
 ```
 """
@@ -325,11 +325,11 @@ struct LargeObjectiveQuadraticCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-function ModelAnalyzer.variables(issue::LargeObjectiveQuadraticCoefficient)
+function MathOptAnalyzer.variables(issue::LargeObjectiveQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
 
-function ModelAnalyzer.value(issue::LargeObjectiveQuadraticCoefficient)
+function MathOptAnalyzer.value(issue::LargeObjectiveQuadraticCoefficient)
     return issue.coefficient
 end
 
@@ -341,8 +341,8 @@ coefficient in a constraint is smaller than `threshold_small`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.SmallMatrixQuadraticCoefficient
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient
 )
 ```
 """
@@ -353,15 +353,15 @@ struct SmallMatrixQuadraticCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-function ModelAnalyzer.variables(issue::SmallMatrixQuadraticCoefficient)
+function MathOptAnalyzer.variables(issue::SmallMatrixQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
 
-function ModelAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient)
+function MathOptAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient)
     return issue.ref
 end
 
-ModelAnalyzer.value(issue::SmallMatrixQuadraticCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::SmallMatrixQuadraticCoefficient) = issue.coefficient
 
 """
     LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
@@ -371,8 +371,8 @@ coefficient in a constraint is larger than `threshold_large`.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.LargeMatrixQuadraticCoefficient
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient
 )
 ```
 """
@@ -383,15 +383,15 @@ struct LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
     coefficient::Float64
 end
 
-function ModelAnalyzer.variables(issue::LargeMatrixQuadraticCoefficient)
+function MathOptAnalyzer.variables(issue::LargeMatrixQuadraticCoefficient)
     return [issue.variable1, issue.variable2]
 end
 
-function ModelAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient)
+function MathOptAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient)
     return issue.ref
 end
 
-ModelAnalyzer.value(issue::LargeMatrixQuadraticCoefficient) = issue.coefficient
+MathOptAnalyzer.value(issue::LargeMatrixQuadraticCoefficient) = issue.coefficient
 
 """
     NonconvexQuadraticObjective <: AbstractNumericalIssue
@@ -401,8 +401,8 @@ objective function is non-convex.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.NonconvexQuadraticObjective
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.NonconvexQuadraticObjective
 )
 ```
 """
@@ -416,24 +416,24 @@ constraint is non-convex.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(
-    ModelAnalyzer.Numerical.NonconvexQuadraticConstraint
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint
 )
 ```
 """
 struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
-ModelAnalyzer.constraint(issue::NonconvexQuadraticConstraint) = issue.ref
+MathOptAnalyzer.constraint(issue::NonconvexQuadraticConstraint) = issue.ref
 
 """
     Data
 
 The `Data` structure holds the results of the analysis performed by the
-`ModelAnalyzer.Numerical.Analyzer`. It contains various thresholds and the
+`MathOptAnalyzer.Numerical.Analyzer`. It contains various thresholds and the
 information about the model's variables, constraints, and objective function.
 """
-Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
+Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
     # analysis configuration
     threshold_dense_fill_in::Float64 = 0.10
     threshold_dense_entries::Int = 1000
