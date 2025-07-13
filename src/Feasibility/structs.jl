@@ -4,15 +4,15 @@
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
 """
-    Analyzer() <: ModelAnalyzer.AbstractAnalyzer
+    Analyzer() <: MathOptAnalyzer.AbstractAnalyzer
 
 The `Analyzer` type is used to perform feasibility analysis on a model.
 
 ## Example
 
 ```julia
-julia> data = ModelAnalyzer.analyze(
-    ModelAnalyzer.Feasibility.Analyzer(),
+julia> data = MathOptAnalyzer.analyze(
+    MathOptAnalyzer.Feasibility.Analyzer(),
     model;
     primal_point::Union{Nothing, Dict} = nothing,
     dual_point::Union{Nothing, Dict} = nothing,
@@ -43,14 +43,14 @@ The additional parameters:
   the dual check will also disable complementarity checking and dual objective
   checks.
 """
-struct Analyzer <: ModelAnalyzer.AbstractAnalyzer end
+struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
 """
     AbstractFeasibilityIssue <: AbstractNumericalIssue
 
 Abstract type for feasibility issues found during the analysis of a model.
 """
-abstract type AbstractFeasibilityIssue <: ModelAnalyzer.AbstractIssue end
+abstract type AbstractFeasibilityIssue <: MathOptAnalyzer.AbstractIssue end
 
 """
     PrimalViolation <: AbstractFeasibilityIssue
@@ -60,7 +60,7 @@ left-hand-side value that is not within the constraint's set.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalViolation)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.PrimalViolation)
 ```
 """
 struct PrimalViolation <: AbstractFeasibilityIssue
@@ -68,9 +68,9 @@ struct PrimalViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
-ModelAnalyzer.constraint(issue::PrimalViolation) = issue.ref
+MathOptAnalyzer.constraint(issue::PrimalViolation) = issue.ref
 
-ModelAnalyzer.value(issue::PrimalViolation) = issue.violation
+MathOptAnalyzer.value(issue::PrimalViolation) = issue.violation
 
 """
     DualConstraintViolation <: AbstractFeasibilityIssue
@@ -81,7 +81,7 @@ This dual constraint corresponds to a primal variable.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualConstraintViolation)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.DualConstraintViolation)
 ```
 """
 struct DualConstraintViolation <: AbstractFeasibilityIssue
@@ -89,9 +89,9 @@ struct DualConstraintViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
-ModelAnalyzer.variable(issue::DualConstraintViolation) = issue.ref
+MathOptAnalyzer.variable(issue::DualConstraintViolation) = issue.ref
 
-ModelAnalyzer.value(issue::DualConstraintViolation) = issue.violation
+MathOptAnalyzer.value(issue::DualConstraintViolation) = issue.violation
 
 """
     DualConstrainedVariableViolation <: AbstractFeasibilityIssue
@@ -108,7 +108,7 @@ This dual constraint corresponds to a primal (non-equality) constraint.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualConstrainedVariableViolation)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation)
 ```
 """
 struct DualConstrainedVariableViolation <: AbstractFeasibilityIssue
@@ -116,9 +116,9 @@ struct DualConstrainedVariableViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
-ModelAnalyzer.constraint(issue::DualConstrainedVariableViolation) = issue.ref
+MathOptAnalyzer.constraint(issue::DualConstrainedVariableViolation) = issue.ref
 
-ModelAnalyzer.value(issue::DualConstrainedVariableViolation) = issue.violation
+MathOptAnalyzer.value(issue::DualConstrainedVariableViolation) = issue.violation
 
 """
     ComplemetarityViolation <: AbstractFeasibilityIssue
@@ -130,7 +130,7 @@ violation is not zero.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.ComplemetarityViolation)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.ComplemetarityViolation)
 ```
 """
 struct ComplemetarityViolation <: AbstractFeasibilityIssue
@@ -138,9 +138,9 @@ struct ComplemetarityViolation <: AbstractFeasibilityIssue
     violation::Float64
 end
 
-ModelAnalyzer.constraint(issue::ComplemetarityViolation) = issue.ref
+MathOptAnalyzer.constraint(issue::ComplemetarityViolation) = issue.ref
 
-ModelAnalyzer.value(issue::ComplemetarityViolation) = issue.violation
+MathOptAnalyzer.value(issue::ComplemetarityViolation) = issue.violation
 
 """
     DualObjectiveMismatch <: AbstractFeasibilityIssue
@@ -151,7 +151,7 @@ dual objective value.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.DualObjectiveMismatch)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.DualObjectiveMismatch)
 ```
 """
 struct DualObjectiveMismatch <: AbstractFeasibilityIssue
@@ -159,7 +159,7 @@ struct DualObjectiveMismatch <: AbstractFeasibilityIssue
     obj_solver::Float64
 end
 
-# ModelAnalyzer.values(issue::DualObjectiveMismatch) = [issue.obj, issue.obj_solver]
+# MathOptAnalyzer.values(issue::DualObjectiveMismatch) = [issue.obj, issue.obj_solver]
 
 """
     PrimalObjectiveMismatch <: AbstractFeasibilityIssue
@@ -170,7 +170,7 @@ the solver's primal objective value.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalObjectiveMismatch)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.PrimalObjectiveMismatch)
 ```
 """
 struct PrimalObjectiveMismatch <: AbstractFeasibilityIssue
@@ -178,7 +178,7 @@ struct PrimalObjectiveMismatch <: AbstractFeasibilityIssue
     obj_solver::Float64
 end
 
-# ModelAnalyzer.values(issue::PrimalObjectiveMismatch) = [issue.obj, issue.obj_solver]
+# MathOptAnalyzer.values(issue::PrimalObjectiveMismatch) = [issue.obj, issue.obj_solver]
 
 """
     PrimalDualMismatch <: AbstractFeasibilityIssue
@@ -189,7 +189,7 @@ objective value computed from problem data and the dual solution.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalDualMismatch)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.PrimalDualMismatch)
 ```
 """
 struct PrimalDualMismatch <: AbstractFeasibilityIssue
@@ -197,7 +197,7 @@ struct PrimalDualMismatch <: AbstractFeasibilityIssue
     dual::Float64
 end
 
-ModelAnalyzer.values(issue::PrimalDualMismatch) = [issue.primal, issue.dual]
+MathOptAnalyzer.values(issue::PrimalDualMismatch) = [issue.primal, issue.dual]
 
 """
     PrimalDualSolverMismatch <: AbstractFeasibilityIssue
@@ -208,7 +208,7 @@ by the solver.
 
 For more information, run:
 ```julia
-julia> ModelAnalyzer.summarize(ModelAnalyzer.Feasibility.PrimalDualSolverMismatch)
+julia> MathOptAnalyzer.summarize(MathOptAnalyzer.Feasibility.PrimalDualSolverMismatch)
 ```
 """
 struct PrimalDualSolverMismatch <: AbstractFeasibilityIssue
@@ -216,17 +216,17 @@ struct PrimalDualSolverMismatch <: AbstractFeasibilityIssue
     dual::Float64
 end
 
-# ModelAnalyzer.values(issue::PrimalDualSolverMismatch) = [issue.primal, issue.dual]
+# MathOptAnalyzer.values(issue::PrimalDualSolverMismatch) = [issue.primal, issue.dual]
 
 """
     Data
 
 The `Data` structure holds the results of the feasibility analysis performed
-by the `ModelAnalyzer.analyze` function for a model. It contains
+by the `MathOptAnalyzer.analyze` function for a model. It contains
 the configuration used for the analysis, the primal and dual points, and
 the lists of various feasibility issues found during the analysis.
 """
-Base.@kwdef mutable struct Data <: ModelAnalyzer.AbstractData
+Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
     # analysis configuration
     primal_point::Union{Nothing,AbstractDict}
     dual_point::Union{Nothing,AbstractDict}

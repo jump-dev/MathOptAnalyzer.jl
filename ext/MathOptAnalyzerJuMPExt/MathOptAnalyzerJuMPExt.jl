@@ -3,23 +3,23 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-module ModelAnalyzerJuMPExt
+module MathOptAnalyzerJuMPExt
 
 import JuMP
 import MathOptInterface as MOI
-import ModelAnalyzer
+import MathOptAnalyzer
 
-function ModelAnalyzer.analyze(
-    analyzer::ModelAnalyzer.AbstractAnalyzer,
+function MathOptAnalyzer.analyze(
+    analyzer::MathOptAnalyzer.AbstractAnalyzer,
     model::JuMP.GenericModel;
     kwargs...,
 )
     moi_model = JuMP.backend(model)
-    result = ModelAnalyzer.analyze(analyzer, moi_model; kwargs...)
+    result = MathOptAnalyzer.analyze(analyzer, moi_model; kwargs...)
     return result
 end
 
-function ModelAnalyzer._name(
+function MathOptAnalyzer._name(
     ref::MOI.VariableIndex,
     model::JuMP.GenericModel{T},
 ) where {T}
@@ -31,7 +31,10 @@ function ModelAnalyzer._name(
     return "$jump_ref"
 end
 
-function ModelAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
+function MathOptAnalyzer._name(
+    ref::MOI.ConstraintIndex,
+    model::JuMP.GenericModel,
+)
     jump_ref = JuMP.constraint_ref_with_index(model, ref)
     name = JuMP.name(jump_ref)
     if !isempty(name)
@@ -40,7 +43,10 @@ function ModelAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
     return "$jump_ref"
 end
 
-function ModelAnalyzer._show(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
+function MathOptAnalyzer._show(
+    ref::MOI.ConstraintIndex,
+    model::JuMP.GenericModel,
+)
     jump_ref = JuMP.constraint_ref_with_index(model, ref)
     io = IOBuffer()
     show(io, jump_ref)
@@ -48,55 +54,55 @@ function ModelAnalyzer._show(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
 end
 
 """
-    variable(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
+    variable(issue::MathOptAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** variable reference associated to a particular issue.
 """
-function ModelAnalyzer.variable(
-    issue::ModelAnalyzer.AbstractIssue,
+function MathOptAnalyzer.variable(
+    issue::MathOptAnalyzer.AbstractIssue,
     model::JuMP.GenericModel{T},
 ) where {T}
-    ref = ModelAnalyzer.variable(issue)
+    ref = MathOptAnalyzer.variable(issue)
     return JuMP.GenericVariableRef{T}(model, ref)
 end
 
 """
-    variables(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
+    variables(issue::MathOptAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** variable references associated to a particular issue.
 """
-function ModelAnalyzer.variables(
-    issue::ModelAnalyzer.AbstractIssue,
+function MathOptAnalyzer.variables(
+    issue::MathOptAnalyzer.AbstractIssue,
     model::JuMP.GenericModel{T},
 ) where {T}
-    refs = ModelAnalyzer.variables(issue)
+    refs = MathOptAnalyzer.variables(issue)
     return JuMP.GenericVariableRef{T}.(model, refs)
 end
 
 """
-    constraint(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
+    constraint(issue::MathOptAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** constraint reference associated to a particular issue.
 """
-function ModelAnalyzer.constraint(
-    issue::ModelAnalyzer.AbstractIssue,
+function MathOptAnalyzer.constraint(
+    issue::MathOptAnalyzer.AbstractIssue,
     model::JuMP.GenericModel,
 )
-    ref = ModelAnalyzer.constraint(issue)
+    ref = MathOptAnalyzer.constraint(issue)
     return JuMP.constraint_ref_with_index(model, ref)
 end
 
 """
-    constraintss(issue::ModelAnalyzer.AbstractIssue, model::JuMP.GenericModel)
+    constraintss(issue::MathOptAnalyzer.AbstractIssue, model::JuMP.GenericModel)
 
 Return the **JuMP** constraints reference associated to a particular issue.
 """
-function ModelAnalyzer.constraints(
-    issue::ModelAnalyzer.AbstractIssue,
+function MathOptAnalyzer.constraints(
+    issue::MathOptAnalyzer.AbstractIssue,
     model::JuMP.GenericModel,
 )
-    ref = ModelAnalyzer.constraints(issue)
+    ref = MathOptAnalyzer.constraints(issue)
     return JuMP.constraint_ref_with_index.(model, ref)
 end
 
-end  # module ModelAnalyzerJuMPExt
+end  # module MathOptAnalyzerJuMPExt

@@ -3,23 +3,26 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleBounds})
+function MathOptAnalyzer._summarize(io::IO, ::Type{<:InfeasibleBounds})
     return print(io, "# InfeasibleBounds")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleIntegrality})
+function MathOptAnalyzer._summarize(io::IO, ::Type{<:InfeasibleIntegrality})
     return print(io, "# InfeasibleIntegrality")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{<:InfeasibleConstraintRange})
+function MathOptAnalyzer._summarize(io::IO, ::Type{<:InfeasibleConstraintRange})
     return print(io, "# InfeasibleConstraintRange")
 end
 
-function ModelAnalyzer._summarize(io::IO, ::Type{<:IrreducibleInfeasibleSubset})
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{<:IrreducibleInfeasibleSubset},
+)
     return print(io, "# IrreducibleInfeasibleSubset")
 end
 
-function ModelAnalyzer._verbose_summarize(io::IO, ::Type{<:InfeasibleBounds})
+function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{<:InfeasibleBounds})
     return print(
         io,
         """
@@ -46,7 +49,7 @@ function ModelAnalyzer._verbose_summarize(io::IO, ::Type{<:InfeasibleBounds})
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{<:InfeasibleIntegrality},
 )
@@ -77,7 +80,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{<:InfeasibleConstraintRange},
 )
@@ -108,7 +111,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{<:IrreducibleInfeasibleSubset},
 )
@@ -138,10 +141,10 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::InfeasibleBounds, model)
+function MathOptAnalyzer._summarize(io::IO, issue::InfeasibleBounds, model)
     return print(
         io,
-        ModelAnalyzer._name(issue.variable, model),
+        MathOptAnalyzer._name(issue.variable, model),
         " : ",
         issue.lb,
         " !<= ",
@@ -149,10 +152,10 @@ function ModelAnalyzer._summarize(io::IO, issue::InfeasibleBounds, model)
     )
 end
 
-function ModelAnalyzer._summarize(io::IO, issue::InfeasibleIntegrality, model)
+function MathOptAnalyzer._summarize(io::IO, issue::InfeasibleIntegrality, model)
     return print(
         io,
-        ModelAnalyzer._name(issue.variable, model),
+        MathOptAnalyzer._name(issue.variable, model),
         " : [",
         issue.lb,
         "; ",
@@ -162,14 +165,14 @@ function ModelAnalyzer._summarize(io::IO, issue::InfeasibleIntegrality, model)
     )
 end
 
-function ModelAnalyzer._summarize(
+function MathOptAnalyzer._summarize(
     io::IO,
     issue::InfeasibleConstraintRange,
     model,
 )
     return print(
         io,
-        ModelAnalyzer._name(issue.constraint, model),
+        MathOptAnalyzer._name(issue.constraint, model),
         " : [",
         issue.lb,
         "; ",
@@ -179,7 +182,7 @@ function ModelAnalyzer._summarize(
     )
 end
 
-function ModelAnalyzer._summarize(
+function MathOptAnalyzer._summarize(
     io::IO,
     issue::IrreducibleInfeasibleSubset,
     model,
@@ -187,11 +190,11 @@ function ModelAnalyzer._summarize(
     return print(
         io,
         "IIS: ",
-        join(map(x -> ModelAnalyzer._name(x, model), issue.constraint), ", "),
+        join(map(x -> MathOptAnalyzer._name(x, model), issue.constraint), ", "),
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleBounds,
     model,
@@ -199,7 +202,7 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Variable: ",
-        ModelAnalyzer._name(issue.variable, model),
+        MathOptAnalyzer._name(issue.variable, model),
         " with lower bound ",
         issue.lb,
         " and upper bound ",
@@ -207,7 +210,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleIntegrality,
     model,
@@ -215,7 +218,7 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Variable: ",
-        ModelAnalyzer._name(issue.variable, model),
+        MathOptAnalyzer._name(issue.variable, model),
         " with lower bound ",
         issue.lb,
         " and upper bound ",
@@ -225,7 +228,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::InfeasibleConstraintRange,
     model,
@@ -233,7 +236,7 @@ function ModelAnalyzer._verbose_summarize(
     return print(
         io,
         "Constraint: ",
-        ModelAnalyzer._name(issue.constraint, model),
+        MathOptAnalyzer._name(issue.constraint, model),
         " with computed lower bound ",
         issue.lb,
         " and computed upper bound ",
@@ -243,7 +246,7 @@ function ModelAnalyzer._verbose_summarize(
     )
 end
 
-function ModelAnalyzer._verbose_summarize(
+function MathOptAnalyzer._verbose_summarize(
     io::IO,
     issue::IrreducibleInfeasibleSubset,
     model,
@@ -252,34 +255,37 @@ function ModelAnalyzer._verbose_summarize(
     for constraint in issue.constraint
         println(io)
         print(io, "   ")
-        print(io, ModelAnalyzer._show(constraint, model))
+        print(io, MathOptAnalyzer._show(constraint, model))
     end
     return
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{InfeasibleBounds})
+function MathOptAnalyzer.list_of_issues(data::Data, ::Type{InfeasibleBounds})
     return data.infeasible_bounds
 end
 
-function ModelAnalyzer.list_of_issues(data::Data, ::Type{InfeasibleIntegrality})
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{InfeasibleIntegrality},
+)
     return data.infeasible_integrality
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{InfeasibleConstraintRange},
 )
     return data.constraint_range
 end
 
-function ModelAnalyzer.list_of_issues(
+function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{IrreducibleInfeasibleSubset},
 )
     return data.iis
 end
 
-function ModelAnalyzer.list_of_issue_types(data::Data)
+function MathOptAnalyzer.list_of_issue_types(data::Data)
     ret = Type[]
     for type in (
         InfeasibleBounds,
@@ -287,26 +293,26 @@ function ModelAnalyzer.list_of_issue_types(data::Data)
         InfeasibleConstraintRange,
         IrreducibleInfeasibleSubset,
     )
-        if !isempty(ModelAnalyzer.list_of_issues(data, type))
+        if !isempty(MathOptAnalyzer.list_of_issues(data, type))
             push!(ret, type)
         end
     end
     return ret
 end
 
-function ModelAnalyzer.summarize(
+function MathOptAnalyzer.summarize(
     io::IO,
     data::Data;
     model = nothing,
     verbose = true,
-    max_issues = ModelAnalyzer.DEFAULT_MAX_ISSUES,
+    max_issues = MathOptAnalyzer.DEFAULT_MAX_ISSUES,
 )
     print(io, "## Infeasibility Analysis\n\n")
 
-    for issue_type in ModelAnalyzer.list_of_issue_types(data)
-        issues = ModelAnalyzer.list_of_issues(data, issue_type)
+    for issue_type in MathOptAnalyzer.list_of_issue_types(data)
+        issues = MathOptAnalyzer.list_of_issues(data, issue_type)
         print(io, "\n\n")
-        ModelAnalyzer.summarize(
+        MathOptAnalyzer.summarize(
             io,
             issues,
             model = model,
@@ -319,8 +325,8 @@ end
 
 function Base.show(io::IO, data::Data)
     n = sum(
-        length(ModelAnalyzer.list_of_issues(data, T)) for
-        T in ModelAnalyzer.list_of_issue_types(data);
+        length(MathOptAnalyzer.list_of_issues(data, T)) for
+        T in MathOptAnalyzer.list_of_issue_types(data);
         init = 0,
     )
     return print(io, "Infeasibility analysis found $n issues")
