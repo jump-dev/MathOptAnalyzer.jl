@@ -31,7 +31,10 @@ function MathOptAnalyzer._name(
     return "$jump_ref"
 end
 
-function MathOptAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
+function MathOptAnalyzer._name(
+    ref::MOI.ConstraintIndex,
+    model::JuMP.GenericModel,
+)
     jump_ref = JuMP.constraint_ref_with_index(model, ref)
     name = JuMP.name(jump_ref)
     if !isempty(name)
@@ -40,7 +43,10 @@ function MathOptAnalyzer._name(ref::MOI.ConstraintIndex, model::JuMP.GenericMode
     return "$jump_ref"
 end
 
-function MathOptAnalyzer._show(ref::MOI.ConstraintIndex, model::JuMP.GenericModel)
+function MathOptAnalyzer._show(
+    ref::MOI.ConstraintIndex,
+    model::JuMP.GenericModel,
+)
     jump_ref = JuMP.constraint_ref_with_index(model, ref)
     io = IOBuffer()
     show(io, jump_ref)

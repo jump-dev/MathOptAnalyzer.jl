@@ -15,7 +15,10 @@ function MathOptAnalyzer._summarize(io::IO, ::Type{<:InfeasibleConstraintRange})
     return print(io, "# InfeasibleConstraintRange")
 end
 
-function MathOptAnalyzer._summarize(io::IO, ::Type{<:IrreducibleInfeasibleSubset})
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{<:IrreducibleInfeasibleSubset},
+)
     return print(io, "# IrreducibleInfeasibleSubset")
 end
 
@@ -261,7 +264,10 @@ function MathOptAnalyzer.list_of_issues(data::Data, ::Type{InfeasibleBounds})
     return data.infeasible_bounds
 end
 
-function MathOptAnalyzer.list_of_issues(data::Data, ::Type{InfeasibleIntegrality})
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{InfeasibleIntegrality},
+)
     return data.infeasible_integrality
 end
 

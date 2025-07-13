@@ -209,7 +209,10 @@ function MathOptAnalyzer._verbose_summarize(
     )
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{DualObjectiveMismatch})
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{DualObjectiveMismatch},
+)
     return print(
         io,
         """
@@ -354,7 +357,11 @@ function MathOptAnalyzer._summarize(io::IO, issue::PrimalViolation, model)
     )
 end
 
-function MathOptAnalyzer._summarize(io::IO, issue::DualConstraintViolation, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::DualConstraintViolation,
+    model,
+)
     return print(
         io,
         MathOptAnalyzer._name(issue.ref, model),
@@ -376,7 +383,11 @@ function MathOptAnalyzer._summarize(
     )
 end
 
-function MathOptAnalyzer._summarize(io::IO, issue::ComplemetarityViolation, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::ComplemetarityViolation,
+    model,
+)
     return print(
         io,
         MathOptAnalyzer._name(issue.ref, model),
@@ -389,7 +400,11 @@ function MathOptAnalyzer._summarize(io::IO, issue::DualObjectiveMismatch, model)
     return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function MathOptAnalyzer._summarize(io::IO, issue::PrimalObjectiveMismatch, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::PrimalObjectiveMismatch,
+    model,
+)
     return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
@@ -405,7 +420,11 @@ function MathOptAnalyzer._summarize(
     return MathOptAnalyzer._verbose_summarize(io, issue, model)
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, issue::PrimalViolation, model)
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::PrimalViolation,
+    model,
+)
     return print(
         io,
         "Constraint ",
@@ -542,7 +561,10 @@ function MathOptAnalyzer.list_of_issues(
     return data.complementarity
 end
 
-function MathOptAnalyzer.list_of_issues(data::Data, ::Type{DualObjectiveMismatch})
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{DualObjectiveMismatch},
+)
     return data.dual_objective_mismatch
 end
 

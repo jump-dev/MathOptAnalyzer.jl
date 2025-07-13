@@ -155,8 +155,10 @@ function test_only_bounds()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.0)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        2.0,
+    )
     @test MathOptAnalyzer.variable(ret[], model) == x
     @test MathOptAnalyzer.value(ret[]) == 2.0
     ret = MathOptAnalyzer.list_of_issues(
@@ -225,15 +227,18 @@ function test_no_lb()
         data,
         MathOptAnalyzer.Feasibility.PrimalViolation,
     )
-    @test ret[] == MathOptAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    @test ret[] ==
+          MathOptAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == 1.0
     ret = MathOptAnalyzer.list_of_issues(
         data,
         MathOptAnalyzer.Feasibility.ComplemetarityViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -1.0)
+    @test ret[] == MathOptAnalyzer.Feasibility.ComplemetarityViolation(
+        JuMP.index(c),
+        -1.0,
+    )
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == -1.0
     ret = MathOptAnalyzer.list_of_issues(
@@ -257,8 +262,10 @@ function test_no_lb()
         data,
         MathOptAnalyzer.Feasibility.ComplemetarityViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), 1.0)
+    @test ret[] == MathOptAnalyzer.Feasibility.ComplemetarityViolation(
+        JuMP.index(c),
+        1.0,
+    )
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == 1.0
     ret = MathOptAnalyzer.list_of_issues(
@@ -284,8 +291,10 @@ function test_no_lb()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.0)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        2.0,
+    )
     @test MathOptAnalyzer.variable(ret[], model) == x
     @test MathOptAnalyzer.value(ret[]) == 2.0
     ret = MathOptAnalyzer.list_of_issues(
@@ -302,8 +311,10 @@ function test_no_lb()
         data,
         MathOptAnalyzer.Feasibility.ComplemetarityViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -1.0)
+    @test ret[] == MathOptAnalyzer.Feasibility.ComplemetarityViolation(
+        JuMP.index(c),
+        -1.0,
+    )
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == -1.0
     ret = MathOptAnalyzer.list_of_issues(
@@ -352,8 +363,10 @@ function test_lb0()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.3)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        2.3,
+    )
     @test MathOptAnalyzer.variable(ret[], model) == x
     @test MathOptAnalyzer.value(ret[]) == 2.3
 
@@ -376,8 +389,10 @@ function test_lb0()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 4.3)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        4.3,
+    )
     @test MathOptAnalyzer.variable(ret[], model) == x
     @test MathOptAnalyzer.value(ret[]) == 4.3
     ret = MathOptAnalyzer.list_of_issues(
@@ -428,8 +443,10 @@ function test_lb2()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 2.3)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        2.3,
+    )
     @test MathOptAnalyzer.variable(ret[], model) == x
     @test MathOptAnalyzer.value(ret[]) == 2.3
 
@@ -446,8 +463,10 @@ function test_lb2()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 4.3)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        4.3,
+    )
     ret = MathOptAnalyzer.list_of_issues(
         data,
         MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation,
@@ -472,19 +491,23 @@ function test_lb2()
         data,
         MathOptAnalyzer.Feasibility.DualConstraintViolation,
     )
-    @test ret[] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 5.3)
+    @test ret[] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        5.3,
+    )
     ret = MathOptAnalyzer.list_of_issues(
         data,
         MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation,
     )
-    @test ret[1] == MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation(
+    @test ret[1] ==
+          MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation(
         JuMP.index(c),
         3.3,
     )
     @test MathOptAnalyzer.constraint(ret[1], model) == c
     @test MathOptAnalyzer.value(ret[1]) == 3.3
-    @test ret[2] == MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation(
+    @test ret[2] ==
+          MathOptAnalyzer.Feasibility.DualConstrainedVariableViolation(
         JuMP.index(LowerBoundRef(x)),
         1.0,
     )
@@ -524,7 +547,8 @@ function test_analyse_simple()
 
     optimize!(model)
 
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
 
     list = MathOptAnalyzer.list_of_issue_types(data)
 
@@ -542,7 +566,8 @@ function test_analyse_simple_direct()
 
     optimize!(model)
 
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
 
     list = MathOptAnalyzer.list_of_issue_types(data)
 
@@ -580,7 +605,8 @@ function test_analyse_many_constraint_types()
 
     optimize!(model)
 
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
 
     list = MathOptAnalyzer.list_of_issue_types(data)
 
@@ -598,7 +624,8 @@ function test_analyse_mip()
 
     optimize!(model)
 
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Feasibility.Analyzer(), model)
 
     list = MathOptAnalyzer.list_of_issue_types(data)
 
@@ -654,7 +681,8 @@ function test_analyse_no_opt()
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
-    @test ret[] == MathOptAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
+    @test ret[] ==
+          MathOptAnalyzer.Feasibility.PrimalViolation(JuMP.index(c), 1.0)
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == 1.0
 
@@ -667,8 +695,10 @@ function test_analyse_no_opt()
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 2
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
-    @test ret[1] ==
-          MathOptAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), 1.0)
+    @test ret[1] == MathOptAnalyzer.Feasibility.ComplemetarityViolation(
+        JuMP.index(c),
+        1.0,
+    )
     @test MathOptAnalyzer.constraint(ret[1], model) == c
     @test MathOptAnalyzer.value(ret[1]) == 1.0
     ret = MathOptAnalyzer.list_of_issues(data, list[2])
@@ -697,13 +727,17 @@ function test_analyse_no_opt()
     @test MathOptAnalyzer.constraint(ret[1], model) == c
     @test MathOptAnalyzer.value(ret[1]) == 1.0
     ret = MathOptAnalyzer.list_of_issues(data, list[2])
-    @test ret[1] ==
-          MathOptAnalyzer.Feasibility.DualConstraintViolation(JuMP.index(x), 1.0)
+    @test ret[1] == MathOptAnalyzer.Feasibility.DualConstraintViolation(
+        JuMP.index(x),
+        1.0,
+    )
     @test MathOptAnalyzer.variable(ret[1], model) == x
     @test MathOptAnalyzer.value(ret[1]) == 1.0
     ret = MathOptAnalyzer.list_of_issues(data, list[3])
-    @test ret[1] ==
-          MathOptAnalyzer.Feasibility.ComplemetarityViolation(JuMP.index(c), -2.0)
+    @test ret[1] == MathOptAnalyzer.Feasibility.ComplemetarityViolation(
+        JuMP.index(c),
+        -2.0,
+    )
     @test MathOptAnalyzer.constraint(ret[1], model) == c
     @test MathOptAnalyzer.value(ret[1]) == -2.0
     ret = MathOptAnalyzer.list_of_issues(data, list[4])
@@ -770,7 +804,10 @@ function test_lowlevel_mismatch()
     issues = []
     push!(issues, MathOptAnalyzer.Feasibility.PrimalObjectiveMismatch(0.0, 1.0))
     push!(issues, MathOptAnalyzer.Feasibility.DualObjectiveMismatch(0.0, 1.0))
-    push!(issues, MathOptAnalyzer.Feasibility.PrimalDualSolverMismatch(0.0, 1.0))
+    push!(
+        issues,
+        MathOptAnalyzer.Feasibility.PrimalDualSolverMismatch(0.0, 1.0),
+    )
     for verbose in (true, false)
         MathOptAnalyzer.summarize(
             buf,

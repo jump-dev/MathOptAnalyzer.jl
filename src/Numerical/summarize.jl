@@ -83,7 +83,10 @@ function MathOptAnalyzer._summarize(io::IO, ::Type{NonconvexQuadraticObjective})
     return print(io, "# NonconvexQuadraticObjective")
 end
 
-function MathOptAnalyzer._summarize(io::IO, ::Type{NonconvexQuadraticConstraint})
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{NonconvexQuadraticConstraint},
+)
     return print(io, "# NonconvexQuadraticConstraint")
 end
 
@@ -280,7 +283,10 @@ function MathOptAnalyzer._verbose_summarize(
     )
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{SmallBoundCoefficient})
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{SmallBoundCoefficient},
+)
     return print(
         io,
         """
@@ -309,7 +315,10 @@ function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{SmallBoundCoefficient
     )
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, ::Type{LargeBoundCoefficient})
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeBoundCoefficient},
+)
     return print(
         io,
         """
@@ -691,7 +700,11 @@ function MathOptAnalyzer._summarize(io::IO, issue::DenseConstraint, model)
     return print(io, MathOptAnalyzer._name(issue.ref, model), " : ", issue.nnz)
 end
 
-function MathOptAnalyzer._summarize(io::IO, issue::SmallMatrixCoefficient, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::SmallMatrixCoefficient,
+    model,
+)
     return print(
         io,
         MathOptAnalyzer._name(issue.ref, model),
@@ -702,7 +715,11 @@ function MathOptAnalyzer._summarize(io::IO, issue::SmallMatrixCoefficient, model
     )
 end
 
-function MathOptAnalyzer._summarize(io::IO, issue::LargeMatrixCoefficient, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeMatrixCoefficient,
+    model,
+)
     return print(
         io,
         MathOptAnalyzer._name(issue.ref, model),
@@ -839,7 +856,11 @@ function MathOptAnalyzer._summarize(
     )
 end
 
-function MathOptAnalyzer._summarize(io::IO, ::NonconvexQuadraticObjective, model)
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::NonconvexQuadraticObjective,
+    model,
+)
     return print(io, "Objective is Nonconvex quadratic")
 end
 
@@ -859,7 +880,11 @@ function MathOptAnalyzer._verbose_summarize(
     return print(io, "Variable: ", MathOptAnalyzer._name(issue.ref, model))
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, issue::EmptyConstraint, model)
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::EmptyConstraint,
+    model,
+)
     return print(io, "Constraint: ", MathOptAnalyzer._name(issue.ref, model))
 end
 
@@ -871,7 +896,11 @@ function MathOptAnalyzer._verbose_summarize(
     return print(io, "Constraint: ", MathOptAnalyzer._name(issue.ref, model))
 end
 
-function MathOptAnalyzer._verbose_summarize(io::IO, issue::DenseConstraint, model)
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::DenseConstraint,
+    model,
+)
     return print(
         io,
         "Constraint: ",
@@ -1118,11 +1147,17 @@ function MathOptAnalyzer.list_of_issues(
     return data.matrix_large
 end
 
-function MathOptAnalyzer.list_of_issues(data::Data, ::Type{SmallBoundCoefficient})
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{SmallBoundCoefficient},
+)
     return data.bounds_small
 end
 
-function MathOptAnalyzer.list_of_issues(data::Data, ::Type{LargeBoundCoefficient})
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeBoundCoefficient},
+)
     return data.bounds_large
 end
 

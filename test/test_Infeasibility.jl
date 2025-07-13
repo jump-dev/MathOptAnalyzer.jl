@@ -27,7 +27,8 @@ function test_bounds()
     @variable(model, 2 <= y <= 1)
     @constraint(model, x + y <= 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -75,7 +76,8 @@ function test_integrality()
     @variable(model, 2.2 <= y <= 2.9, Int)
     @constraint(model, x + y <= 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -127,7 +129,8 @@ function test_binary()
     @variable(model, 0 <= y <= 1, Bin)
     @constraint(model, x + y <= 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -153,7 +156,8 @@ function test_range()
     @variable(model, 1 <= y <= 11)
     @constraint(model, c, x + y <= 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -206,7 +210,8 @@ function test_range_neg()
     @variable(model, -11 <= y <= -1)
     @constraint(model, c, x - y <= 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -230,7 +235,8 @@ function test_range_equalto()
     @variable(model, y == 2)
     @constraint(model, c, x + y == 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -254,7 +260,8 @@ function test_range_equalto_2()
     @variable(model, y == 2)
     @constraint(model, c, 3x + 2y == 1)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -278,7 +285,8 @@ function test_range_greaterthan()
     @variable(model, 1 <= y <= 11)
     @constraint(model, c, x + y >= 100)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -302,7 +310,8 @@ function test_range_equalto_3()
     @variable(model, 1 <= y <= 11)
     @constraint(model, c, x + y == 100)
     @objective(model, Max, x + y)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 1
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
@@ -363,7 +372,8 @@ function test_iis()
     @constraint(model, c2, x + y >= 2)
     @objective(model, Max, x + y)
     optimize!(model)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     data = MathOptAnalyzer.analyze(
@@ -456,7 +466,8 @@ function test_iis_multiple()
     @constraint(model, c2, x + y >= 2)
     @objective(model, Max, x + y)
     optimize!(model)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     data = MathOptAnalyzer.analyze(
@@ -488,7 +499,8 @@ function test_iis_interval_right()
     @constraint(model, c2, x + y >= 2)
     @objective(model, Max, x + y)
     optimize!(model)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     data = MathOptAnalyzer.analyze(
@@ -518,7 +530,8 @@ function test_iis_interval_left()
     @constraint(model, c2, 2 <= x + y <= 5)
     @objective(model, Max, x + y)
     optimize!(model)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     data = MathOptAnalyzer.analyze(
@@ -554,7 +567,8 @@ function test_iis_spare()
     @constraint(model, c2, x + y >= 2)
     @objective(model, Max, x + y)
     optimize!(model)
-    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
+    data =
+        MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
     @test length(list) == 0
     data = MathOptAnalyzer.analyze(

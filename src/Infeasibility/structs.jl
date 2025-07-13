@@ -129,7 +129,9 @@ struct IrreducibleInfeasibleSubset <: AbstractInfeasibilitylIssue
     constraint::Vector{<:MOI.ConstraintIndex}
 end
 
-MathOptAnalyzer.constraints(issue::IrreducibleInfeasibleSubset) = issue.constraint
+function MathOptAnalyzer.constraints(issue::IrreducibleInfeasibleSubset)
+    return issue.constraint
+end
 
 """
     Data <: MathOptAnalyzer.AbstractData

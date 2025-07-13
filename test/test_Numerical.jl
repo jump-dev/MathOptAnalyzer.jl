@@ -48,7 +48,10 @@ function test_variable_bounds()
     @test length(ret) == 3
 
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallBoundCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallBoundCoefficient`")
     MathOptAnalyzer.summarize(
@@ -59,7 +62,10 @@ function test_variable_bounds()
     str = String(take!(buf))
     @test str == "# SmallBoundCoefficient"
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeBoundCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeBoundCoefficient`")
     MathOptAnalyzer.summarize(
@@ -110,7 +116,10 @@ function test_constraint_bounds()
     @test length(ret) == 4
 
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
     MathOptAnalyzer.summarize(
@@ -121,7 +130,10 @@ function test_constraint_bounds()
     str = String(take!(buf))
     @test str == "# SmallRHSCoefficient"
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
     MathOptAnalyzer.summarize(
@@ -167,7 +179,10 @@ function test_constraint_bounds_quad()
     @test length(ret) == 2
 
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
     MathOptAnalyzer.summarize(
@@ -178,7 +193,10 @@ function test_constraint_bounds_quad()
     str = String(take!(buf))
     @test str == "# SmallRHSCoefficient"
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
     MathOptAnalyzer.summarize(
@@ -415,7 +433,8 @@ function test_dense_constraint()
     )
     @test length(ret) == 1
     @test MathOptAnalyzer.constraint(ret[]) == JuMP.index(c)
-    @test MathOptAnalyzer.constraint(ret[], JuMP.backend(model)) == JuMP.index(c)
+    @test MathOptAnalyzer.constraint(ret[], JuMP.backend(model)) ==
+          JuMP.index(c)
     @test MathOptAnalyzer.constraint(ret[], model) == c
     @test MathOptAnalyzer.value(ret[]) == 10_000
     #
@@ -458,7 +477,10 @@ function test_small_matrix_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallMatrixCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallMatrixCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallMatrixCoefficient`")
     MathOptAnalyzer.summarize(
@@ -497,7 +519,10 @@ function test_large_matrix_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeMatrixCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeMatrixCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeMatrixCoefficient`")
     MathOptAnalyzer.summarize(
@@ -535,7 +560,10 @@ function test_small_bound_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallBoundCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallBoundCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallBoundCoefficient`")
     MathOptAnalyzer.summarize(
@@ -572,7 +600,10 @@ function test_large_bound_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeBoundCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeBoundCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeBoundCoefficient`")
     MathOptAnalyzer.summarize(
@@ -609,7 +640,10 @@ function test_small_rhs_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e-9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.SmallRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.SmallRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `SmallRHSCoefficient`")
     MathOptAnalyzer.summarize(
@@ -646,7 +680,10 @@ function test_large_rhs_coef()
     @test MathOptAnalyzer.value(ret[]) == 1e+9
     #
     buf = IOBuffer()
-    MathOptAnalyzer.summarize(buf, MathOptAnalyzer.Numerical.LargeRHSCoefficient)
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeRHSCoefficient,
+    )
     str = String(take!(buf))
     @test startswith(str, "# `LargeRHSCoefficient`")
     MathOptAnalyzer.summarize(

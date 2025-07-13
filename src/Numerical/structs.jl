@@ -361,7 +361,9 @@ function MathOptAnalyzer.constraint(issue::SmallMatrixQuadraticCoefficient)
     return issue.ref
 end
 
-MathOptAnalyzer.value(issue::SmallMatrixQuadraticCoefficient) = issue.coefficient
+function MathOptAnalyzer.value(issue::SmallMatrixQuadraticCoefficient)
+    return issue.coefficient
+end
 
 """
     LargeMatrixQuadraticCoefficient <: AbstractNumericalIssue
@@ -391,7 +393,9 @@ function MathOptAnalyzer.constraint(issue::LargeMatrixQuadraticCoefficient)
     return issue.ref
 end
 
-MathOptAnalyzer.value(issue::LargeMatrixQuadraticCoefficient) = issue.coefficient
+function MathOptAnalyzer.value(issue::LargeMatrixQuadraticCoefficient)
+    return issue.coefficient
+end
 
 """
     NonconvexQuadraticObjective <: AbstractNumericalIssue
