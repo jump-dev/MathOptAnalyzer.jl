@@ -23,10 +23,10 @@ Install `MathOptAnalyzer` using `Pkg.add`:
 
 ```julia
 import Pkg
-Pkg.add(; url = "https://github.com/jump-dev/MathOptAnalyzer.jl")
+Pkg.add("MathOptAnalyzer")
 ```
 
 ## Documentation
 
-The [documentation for MathOptAnalyzer.jl](https://jump.dev/MathOptAnalyzer.jl/dev/)
+The [documentation for MathOptAnalyzer.jl](https://jump.dev/MathOptAnalyzer.jl/stable/)
 describes how to use the package.
