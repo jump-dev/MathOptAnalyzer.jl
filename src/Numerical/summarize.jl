@@ -90,6 +90,27 @@ function MathOptAnalyzer._summarize(
     return print(io, "# NonconvexQuadraticConstraint")
 end
 
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeConstraint},
+)
+    return print(io, "# LargeDynamicRangeConstraint")
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeMatrix},
+)
+    return print(io, "# LargeDynamicRangeMatrix")
+end 
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeObjective},
+)
+    return print(io, "# LargeDynamicRangeObjective")
+end 
+
 function MathOptAnalyzer._verbose_summarize(
     io::IO,
     ::Type{VariableNotInConstraints},
@@ -676,6 +697,143 @@ function MathOptAnalyzer._verbose_summarize(
     )
 end
 
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeConstraint},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeConstraint`
+
+        ## What
+
+        A `LargeDynamicRangeConstraint` issue is identified when a constraint
+        has a large dynamic range, that is, the ratio between the largest and
+        smallest coefficient is large.
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the constraint is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeMatrix},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeMatrix`
+
+        ## What
+
+        A `LargeDynamicRangeMatrix` issue is identified when a matrix has a
+        large dynamic range, that is, the ratio between the largest and smallest
+        coefficient is large.
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the matrix is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeObjective},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeObjective`
+
+        ## What
+
+        A `LargeDynamicRangeObjective` issue is identified when an objective
+        function has a large dynamic range, that is, the ratio between the
+        largest and smallest coefficient is large.
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the objective is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeVariable},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeVariable`
+
+        ## What
+
+        A `LargeDynamicRangeVariable` issue is identified when the dynamic range of a
+        variable is larger than `threshold_dynamic_range_single`. The dynamic range is
+        defined as the ratio between the largest and smallest coefficients of the
+        variable in all constraints it appears.
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the variable is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
 function MathOptAnalyzer._summarize(
     io::IO,
     issue::VariableNotInConstraints,
@@ -870,6 +1028,43 @@ function MathOptAnalyzer._summarize(
     model,
 )
     return print(io, MathOptAnalyzer._name(issue.ref, model))
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeDynamicRangeConstraint,
+    model,
+)
+    return print(io, MathOptAnalyzer._name(issue.ref, model), " : ", issue.range)
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeDynamicRangeMatrix,
+    model,
+)
+    return print(io, "Matrix has a Large dynamic range : ", issue.range)
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeDynamicRangeObjective,
+    model,
+)
+    return print(io, "Objective has a Large dynamic range : ", issue.range)
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeDynamicRangeVariable,
+    model,
+)
+    return print(
+        io,
+        MathOptAnalyzer._name(issue.variable, model),
+        " : ",
+        issue.range,
+    )
 end
 
 function MathOptAnalyzer._verbose_summarize(

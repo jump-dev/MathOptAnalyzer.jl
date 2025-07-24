@@ -17,17 +17,21 @@ function MathOptAnalyzer.analyze(
     threshold_dense_entries::Int = 1000,
     threshold_small::Float64 = 1e-5,
     threshold_large::Float64 = 1e+5,
+    threshold_dynamic_range_single::Float64 = 1e+6,
+    threshold_dynamic_range_matrix::Float64 = 1e+8,
 )
     data = Data()
     data.threshold_dense_fill_in = threshold_dense_fill_in
     data.threshold_dense_entries = threshold_dense_entries
     data.threshold_small = threshold_small
     data.threshold_large = threshold_large
+    data.threshold_dynamic_range_single = threshold_dynamic_range_single
+    data.threshold_dynamic_range_matrix = threshold_dynamic_range_matrix
 
     # initialize simples data
     data.sense = MOI.get(model, MOI.ObjectiveSense())
     data.number_of_variables = MOI.get(model, MOI.NumberOfVariables())
-    sizehint!(data.variables_in_constraints, data.number_of_variables)
+    sizehint!(data._variables_in_constraints, data.number_of_variables)
 
     # objective pass
     objective_type = MOI.get(model, MOI.ObjectiveFunctionType())
@@ -56,13 +60,15 @@ function MathOptAnalyzer.analyze(
     # variable index constraints are not counted in the constraints pass
     list_of_variables = MOI.get(model, MOI.ListOfVariableIndices())
     for var in list_of_variables
-        if !(var in data.variables_in_constraints)
+        if !(var in data._variables_in_constraints)
             push!(
                 data.variables_not_in_constraints,
                 VariableNotInConstraints(var),
             )
         end
     end
+    # TODO
+    # compute ranges and dynamic ranges for variables and matrix
     sort!(data.dense_rows, by = x -> x.nnz, rev = true)
     sort!(data.matrix_small, by = x -> abs(x.coefficient))
     sort!(data.matrix_large, by = x -> abs(x.coefficient), rev = true)
@@ -96,13 +102,14 @@ end
 
 function _get_objective_data(data, func::MOI.ScalarAffineFunction)
     nnz = 0
+    _reset_function_range(data)
     for term in func.terms
         variable = term.variable
         coefficient = term.coefficient
         if iszero(coefficient)
             continue
         end
-        nnz += _update_range(data.objective_range, coefficient)
+        nnz += _update_function_range(data, coefficient, variable)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.objective_small,
@@ -115,7 +122,85 @@ function _get_objective_data(data, func::MOI.ScalarAffineFunction)
             )
         end
     end
+    range = _function_range(data)
+    if range > data.threshold_dynamic_range_single
+        push!(
+            data.large_dynamic_range_objective,
+            LargeDynamicRangeObjective(
+                data._small_coefficient[1][2],
+                data._large_coefficient[1][2],
+                range,
+            ),
+        )
+    end
+    _reset_function_range(data)
     return
+end
+
+function _reset_function_range(data::Data)
+    empty!(data._large_coefficient)
+    empty!(data._small_coefficient)
+    sizehint!(data._large_coefficient, 1)
+    sizehint!(data._small_coefficient, 1)
+    return
+end
+
+function _function_range(data::Data)
+    if isempty(data._large_coefficient) || isempty(data._small_coefficient)
+        return 0.0
+    end
+    large = data._large_coefficient[1][1]
+    small = data._small_coefficient[1][1]
+    return large / small
+end
+
+function _update_function_range(data::Data, value, variable)
+    if iszero(value)
+        return 0
+    end
+    value = abs(value)
+    if isempty(data._large_coefficient)
+        push!(data._large_coefficient, (value, variable))
+    elseif value > data._large_coefficient[1][1]
+        data._large_coefficient[1] = (value, variable)
+    end
+    if isempty(data._small_coefficient)
+        push!(data._small_coefficient, (value, variable))
+    elseif value < data._small_coefficient[1][1]
+        data._small_coefficient[1] = (value, variable)
+    end
+    return 1
+end
+
+function _update_constraint_range(data::Data, value, variable, ref)
+    if iszero(value)
+        return 0
+    end
+    _update_function_range(data, value, variable)
+    value = abs(value)
+    #
+    if isempty(data._large_matrix_coefficient)
+        push!(data._large_matrix_coefficient, (value, ref, variable))
+    elseif value > data._large_matrix_coefficient[1][1]
+        data._large_matrix_coefficient[1] = (value, ref, variable)
+    end
+    if isempty(data._small_matrix_coefficient)
+        push!(data._small_matrix_coefficient, (value, ref, variable))
+    elseif value < data._small_matrix_coefficient[1][1]
+        data._small_matrix_coefficient[1] = (value, ref, variable)
+    end
+    #
+    if !haskey(data._large_variable_coefficient, variable)
+        data._large_variable_coefficient[variable] = (value, ref)
+    elseif value > data._large_matrix_coefficient[variable][1]
+        data._large_variable_coefficient[variable] = (value, ref)
+    end
+    if !haskey(data._small_variable_coefficient, variable)
+        data._small_variable_coefficient[variable] = (value, ref)
+    elseif value < data._small_variable_coefficient[variable][1]
+        data._small_variable_coefficient[variable] = (value, ref)
+    end
+    return 1
 end
 
 function _get_objective_data(
@@ -231,13 +316,15 @@ function _get_constraint_matrix_data(
         end
     end
     nnz = 0
+    _reset_function_range(data)
     for term in func.terms
         variable = term.variable
         coefficient = term.coefficient
         if iszero(coefficient)
             continue
         end
-        nnz += _update_range(data.matrix_range, coefficient)
+        # nnz += _update_range(data.matrix_range, coefficient)
+        nnz += _update_constraint_range(data, coefficient, variable, ref)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.matrix_small,
@@ -249,7 +336,7 @@ function _get_constraint_matrix_data(
                 LargeMatrixCoefficient(ref, variable, coefficient),
             )
         end
-        push!(data.variables_in_constraints, variable)
+        push!(data._variables_in_constraints, variable)
     end
     if nnz == 0
         if !ignore_extras
@@ -261,6 +348,19 @@ function _get_constraint_matrix_data(
        nnz > data.threshold_dense_entries
         push!(data.dense_rows, DenseConstraint(ref, nnz))
     end
+    range = _function_range(data)
+    if range > data.threshold_dynamic_range_single
+        push!(
+            data.large_dynamic_range_constraints,
+            LargeDynamicRangeConstraint(
+                ref,
+                data._small_coefficient[1][2],
+                data._large_coefficient[1][2],
+                range,
+            ),
+        )
+    end
+    _reset_function_range(data)
     data.matrix_nnz += nnz
     return
 end
@@ -290,8 +390,8 @@ function _get_constraint_matrix_data(
                 LargeMatrixQuadraticCoefficient(ref, v1, v2, coefficient),
             )
         end
-        push!(data.variables_in_constraints, v1)
-        push!(data.variables_in_constraints, v2)
+        push!(data._variables_in_constraints, v1)
+        push!(data._variables_in_constraints, v2)
     end
     data.has_quadratic_constraints = true
     _get_constraint_matrix_data(
@@ -307,7 +407,10 @@ function _get_constraint_matrix_data(
     data,
     ref::MOI.ConstraintIndex,
     func::MOI.VectorAffineFunction{T},
+    ignore_extras::Bool = false,
 ) where {T}
+    nnz = 0
+    _reset_function_range(data)
     for term in func.terms
         variable = term.scalar_term.variable
         coefficient = term.scalar_term.coefficient
@@ -315,7 +418,8 @@ function _get_constraint_matrix_data(
         if iszero(coefficient)
             continue
         end
-        _update_range(data.matrix_range, coefficient)
+        # _update_range(data.matrix_range, coefficient)
+        nnz += _update_constraint_range(data, coefficient, variable, ref)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.matrix_small,
@@ -327,8 +431,34 @@ function _get_constraint_matrix_data(
                 LargeMatrixCoefficient(ref, variable, coefficient),
             )
         end
-        push!(data.variables_in_constraints, variable)
+        push!(data._variables_in_constraints, variable)
     end
+    if nnz == 0
+        if !ignore_extras
+            push!(data.empty_rows, EmptyConstraint(ref))
+        end
+        return
+    end
+    # this computation for vector constraint can be more complicated
+    # as this might need to be per index
+    # if nnz / data.number_of_variables > data.threshold_dense_fill_in &&
+    #    nnz > data.threshold_dense_entries
+    #     push!(data.dense_rows, DenseConstraint(ref, nnz))
+    # end
+    range = _function_range(data)
+    if range > data.threshold_dynamic_range_single
+        push!(
+            data.large_dynamic_range_constraints,
+            LargeDynamicRangeConstraint(
+                ref,
+                data._small_coefficient[1][2],
+                data._large_coefficient[1][2],
+                range,
+            ),
+        )
+    end
+    _reset_function_range(data)
+    data.matrix_nnz += nnz
     return
 end
 
@@ -337,6 +467,7 @@ function _get_constraint_matrix_data(
     ref::MOI.ConstraintIndex,
     func::MOI.VectorQuadraticFunction{T},
 ) where {T}
+    nnz = 0
     for term in func.quadratic_terms
         v1 = term.scalar_term.variable_1
         v2 = term.scalar_term.variable_2
@@ -344,7 +475,7 @@ function _get_constraint_matrix_data(
         if iszero(coefficient)
             continue
         end
-        _update_range(data.matrix_quadratic_range, coefficient)
+        nnz += _update_range(data.matrix_quadratic_range, coefficient)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.matrix_quadratic_small,
@@ -356,14 +487,14 @@ function _get_constraint_matrix_data(
                 LargeMatrixQuadraticCoefficient(ref, v1, v2, coefficient),
             )
         end
-        push!(data.variables_in_constraints, v1)
-        push!(data.variables_in_constraints, v2)
+        push!(data._variables_in_constraints, v1)
+        push!(data._variables_in_constraints, v2)
     end
     _get_constraint_matrix_data(
         data,
         ref,
         MOI.VectorAffineFunction{T}(func.affine_terms, func.constants),
-        # ignore_extras = nnz > 0,
+        ignore_extras = nnz > 0,
     )
     return
 end
@@ -373,7 +504,7 @@ function _get_constraint_matrix_data(
     ref::MOI.ConstraintIndex,
     func::MOI.VariableIndex,
 )
-    # push!(data.variables_in_constraints, func)
+    # push!(data._variables_in_constraints, func)
     return
 end
 
@@ -386,7 +517,7 @@ function _get_constraint_matrix_data(
         return
     end
     for var in func.variables
-        push!(data.variables_in_constraints, var)
+        push!(data._variables_in_constraints, var)
     end
     return
 end
