@@ -67,8 +67,102 @@ function MathOptAnalyzer.analyze(
             )
         end
     end
-    # TODO
-    # compute ranges and dynamic ranges for variables and matrix
+    # compute ranges and dynamic range violations
+    if !isempty(data._large_matrix_coefficient) &&
+       !isempty(data._small_matrix_coefficient)
+        lower = data._small_matrix_coefficient[1][1]
+        upper = data._large_matrix_coefficient[1][1]
+        range = upper / lower
+        if range > data.threshold_dynamic_range_matrix
+            push!(
+                data.large_dynamic_range_matrix,
+                LargeDynamicRangeMatrix(
+                    data._small_matrix_coefficient[1][2],
+                    data._large_matrix_coefficient[1][2],
+                    data._small_matrix_coefficient[1][3],
+                    data._large_matrix_coefficient[1][3],
+                    lower,
+                    upper,
+                ),
+            )
+        end
+        data.matrix_range = [lower, upper]
+    end
+    if !isempty(data._large_rhs_coefficient) &&
+       !isempty(data._small_rhs_coefficient)
+        lower = data._small_rhs_coefficient[1][1]
+        upper = data._large_rhs_coefficient[1][1]
+        range = upper / lower
+        if range > data.threshold_dynamic_range_single
+            push!(
+                data.large_dynamic_range_rhs,
+                LargeDynamicRangeRHS(
+                    data._small_rhs_coefficient[1][2],
+                    data._large_rhs_coefficient[1][2],
+                    lower,
+                    upper,
+                ),
+            )
+        end
+        data.rhs_range = [lower, upper]
+    end
+    if !isempty(data._large_bound_coefficient) &&
+       !isempty(data._small_bound_coefficient)
+        lower = data._small_bound_coefficient[1][1]
+        upper = data._large_bound_coefficient[1][1]
+        range = upper / lower
+        if range > data.threshold_dynamic_range_single
+            push!(
+                data.large_dynamic_range_bounds,
+                LargeDynamicRangeBound(
+                    data._small_bound_coefficient[1][2],
+                    data._large_bound_coefficient[1][2],
+                    lower,
+                    upper,
+                ),
+            )
+        end
+        data.bounds_range = [lower, upper]
+    end
+    if !isempty(data._large_objective_coefficient) &&
+       !isempty(data._small_objective_coefficient)
+        lower = data._small_objective_coefficient[1][1]
+        upper = data._large_objective_coefficient[1][1]
+        range = upper / lower
+        if range > data.threshold_dynamic_range_single
+            push!(
+                data.large_dynamic_range_objective,
+                LargeDynamicRangeObjective(
+                    data._small_objective_coefficient[1][2],
+                    data._large_objective_coefficient[1][2],
+                    lower,
+                    upper,
+                ),
+            )
+        end
+        data.objective_range = [lower, upper]
+    end
+
+    for var in list_of_variables
+        if haskey(data._large_variable_coefficient, var)
+            lower = data._small_variable_coefficient[var][1]
+            upper = data._large_variable_coefficient[var][1]
+            range = upper / lower
+            if range > data.threshold_dynamic_range_single
+                push!(
+                    data.large_dynamic_range_variables,
+                    LargeDynamicRangeVariable(
+                        var,
+                        data._small_variable_coefficient[var][2],
+                        data._large_variable_coefficient[var][2],
+                        lower,
+                        upper,
+                    ),
+                )
+            end
+        end
+    end
+
     sort!(data.dense_rows, by = x -> x.nnz, rev = true)
     sort!(data.matrix_small, by = x -> abs(x.coefficient))
     sort!(data.matrix_large, by = x -> abs(x.coefficient), rev = true)
@@ -87,6 +181,16 @@ function MathOptAnalyzer.analyze(
         by = x -> abs(x.coefficient),
         rev = true,
     )
+    sort!(
+        data.large_dynamic_range_constraints,
+        by = x -> (x.upper / x.lower),
+        rev = true,
+    )
+    sort!(
+        data.large_dynamic_range_variables,
+        by = x -> (x.upper / x.lower),
+        rev = true,
+    )
     return data
 end
 
@@ -102,14 +206,13 @@ end
 
 function _get_objective_data(data, func::MOI.ScalarAffineFunction)
     nnz = 0
-    _reset_function_range(data)
     for term in func.terms
         variable = term.variable
         coefficient = term.coefficient
         if iszero(coefficient)
             continue
         end
-        nnz += _update_function_range(data, coefficient, variable)
+        nnz += _update_objective_range(data, coefficient, variable)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.objective_small,
@@ -122,52 +225,49 @@ function _get_objective_data(data, func::MOI.ScalarAffineFunction)
             )
         end
     end
-    range = _function_range(data)
-    if range > data.threshold_dynamic_range_single
-        push!(
-            data.large_dynamic_range_objective,
-            LargeDynamicRangeObjective(
-                data._small_coefficient[1][2],
-                data._large_coefficient[1][2],
-                range,
-            ),
-        )
-    end
-    _reset_function_range(data)
     return
 end
 
 function _reset_function_range(data::Data)
-    empty!(data._large_coefficient)
-    empty!(data._small_coefficient)
-    sizehint!(data._large_coefficient, 1)
-    sizehint!(data._small_coefficient, 1)
+    empty!(data._large_constraint_coefficient)
+    empty!(data._small_constraint_coefficient)
+    sizehint!(data._large_constraint_coefficient, 1)
+    sizehint!(data._small_constraint_coefficient, 1)
     return
 end
 
-function _function_range(data::Data)
-    if isempty(data._large_coefficient) || isempty(data._small_coefficient)
-        return 0.0
-    end
-    large = data._large_coefficient[1][1]
-    small = data._small_coefficient[1][1]
-    return large / small
-end
-
-function _update_function_range(data::Data, value, variable)
+function _update_objective_range(data::Data, value, variable)
     if iszero(value)
         return 0
     end
     value = abs(value)
-    if isempty(data._large_coefficient)
-        push!(data._large_coefficient, (value, variable))
-    elseif value > data._large_coefficient[1][1]
-        data._large_coefficient[1] = (value, variable)
+    if isempty(data._large_objective_coefficient)
+        push!(data._large_objective_coefficient, (value, variable))
+    elseif value > data._large_objective_coefficient[1][1]
+        data._large_objective_coefficient[1] = (value, variable)
     end
-    if isempty(data._small_coefficient)
-        push!(data._small_coefficient, (value, variable))
-    elseif value < data._small_coefficient[1][1]
-        data._small_coefficient[1] = (value, variable)
+    if isempty(data._small_objective_coefficient)
+        push!(data._small_objective_coefficient, (value, variable))
+    elseif value < data._small_objective_coefficient[1][1]
+        data._small_objective_coefficient[1] = (value, variable)
+    end
+    return 1
+end
+
+function _update_bound_range(data::Data, value, variable)
+    if iszero(value)
+        return 0
+    end
+    value = abs(value)
+    if isempty(data._large_bound_coefficient)
+        push!(data._large_bound_coefficient, (value, variable))
+    elseif value > data._large_bound_coefficient[1][1]
+        data._large_bound_coefficient[1] = (value, variable)
+    end
+    if isempty(data._small_bound_coefficient)
+        push!(data._small_bound_coefficient, (value, variable))
+    elseif value < data._small_bound_coefficient[1][1]
+        data._small_bound_coefficient[1] = (value, variable)
     end
     return 1
 end
@@ -176,8 +276,18 @@ function _update_constraint_range(data::Data, value, variable, ref)
     if iszero(value)
         return 0
     end
-    _update_function_range(data, value, variable)
     value = abs(value)
+    #
+    if isempty(data._large_constraint_coefficient)
+        push!(data._large_constraint_coefficient, (value, variable))
+    elseif value > data._large_constraint_coefficient[1][1]
+        data._large_constraint_coefficient[1] = (value, variable)
+    end
+    if isempty(data._small_constraint_coefficient)
+        push!(data._small_constraint_coefficient, (value, variable))
+    elseif value < data._small_constraint_coefficient[1][1]
+        data._small_constraint_coefficient[1] = (value, variable)
+    end
     #
     if isempty(data._large_matrix_coefficient)
         push!(data._large_matrix_coefficient, (value, ref, variable))
@@ -192,13 +302,31 @@ function _update_constraint_range(data::Data, value, variable, ref)
     #
     if !haskey(data._large_variable_coefficient, variable)
         data._large_variable_coefficient[variable] = (value, ref)
-    elseif value > data._large_matrix_coefficient[variable][1]
+    elseif value > data._large_variable_coefficient[variable][1]
         data._large_variable_coefficient[variable] = (value, ref)
     end
     if !haskey(data._small_variable_coefficient, variable)
         data._small_variable_coefficient[variable] = (value, ref)
     elseif value < data._small_variable_coefficient[variable][1]
         data._small_variable_coefficient[variable] = (value, ref)
+    end
+    return 1
+end
+
+function _update_rhs_range(data::Data, value, constraint)
+    if iszero(value)
+        return 0
+    end
+    #
+    if isempty(data._large_rhs_coefficient)
+        push!(data._large_rhs_coefficient, (value, constraint))
+    elseif value > data._large_rhs_coefficient[1][1]
+        data._large_rhs_coefficient[1] = (value, constraint)
+    end
+    if isempty(data._small_rhs_coefficient)
+        push!(data._small_rhs_coefficient, (value, constraint))
+    elseif value < data._small_rhs_coefficient[1][1]
+        data._small_rhs_coefficient[1] = (value, constraint)
     end
     return 1
 end
@@ -323,7 +451,6 @@ function _get_constraint_matrix_data(
         if iszero(coefficient)
             continue
         end
-        # nnz += _update_range(data.matrix_range, coefficient)
         nnz += _update_constraint_range(data, coefficient, variable, ref)
         if abs(coefficient) < data.threshold_small
             push!(
@@ -348,15 +475,21 @@ function _get_constraint_matrix_data(
        nnz > data.threshold_dense_entries
         push!(data.dense_rows, DenseConstraint(ref, nnz))
     end
-    range = _function_range(data)
+    range = 1.0
+    if !isempty(data._large_constraint_coefficient)
+        upper = data._large_constraint_coefficient[1][1]
+        lower = data._small_constraint_coefficient[1][1]
+        range = upper / lower
+    end
     if range > data.threshold_dynamic_range_single
         push!(
             data.large_dynamic_range_constraints,
             LargeDynamicRangeConstraint(
                 ref,
-                data._small_coefficient[1][2],
-                data._large_coefficient[1][2],
-                range,
+                data._small_constraint_coefficient[1][2],
+                data._large_constraint_coefficient[1][2],
+                lower,
+                upper,
             ),
         )
     end
@@ -406,7 +539,7 @@ end
 function _get_constraint_matrix_data(
     data,
     ref::MOI.ConstraintIndex,
-    func::MOI.VectorAffineFunction{T},
+    func::MOI.VectorAffineFunction{T};
     ignore_extras::Bool = false,
 ) where {T}
     nnz = 0
@@ -418,7 +551,6 @@ function _get_constraint_matrix_data(
         if iszero(coefficient)
             continue
         end
-        # _update_range(data.matrix_range, coefficient)
         nnz += _update_constraint_range(data, coefficient, variable, ref)
         if abs(coefficient) < data.threshold_small
             push!(
@@ -445,15 +577,21 @@ function _get_constraint_matrix_data(
     #    nnz > data.threshold_dense_entries
     #     push!(data.dense_rows, DenseConstraint(ref, nnz))
     # end
-    range = _function_range(data)
+    range = 1.0
+    if !isempty(data._large_constraint_coefficient)
+        upper = data._large_constraint_coefficient[1][1]
+        lower = data._small_constraint_coefficient[1][1]
+        range = upper / lower
+    end
     if range > data.threshold_dynamic_range_single
         push!(
             data.large_dynamic_range_constraints,
             LargeDynamicRangeConstraint(
                 ref,
-                data._small_coefficient[1][2],
-                data._large_coefficient[1][2],
-                range,
+                data._small_constraint_coefficient[1][2],
+                data._large_constraint_coefficient[1][2],
+                lower,
+                upper,
             ),
         )
     end
@@ -532,7 +670,7 @@ function _get_constraint_data(
     if iszero(coefficient)
         return
     end
-    _update_range(data.rhs_range, coefficient)
+    _update_rhs_range(data, coefficient, ref)
     if abs(coefficient) < data.threshold_small
         push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
@@ -553,7 +691,7 @@ function _get_constraint_data(
         if iszero(coefficient)
             continue
         end
-        _update_range(data.rhs_range, coefficient)
+        _update_rhs_range(data, coefficient, ref)
         if abs(coefficient) < data.threshold_small
             push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
         elseif abs(coefficient) > data.threshold_large
@@ -609,7 +747,7 @@ function _get_constraint_data(
     if iszero(coefficient)
         return
     end
-    _update_range(data.rhs_range, coefficient)
+    _update_rhs_range(data, coefficient, ref)
     if abs(coefficient) < data.threshold_small
         push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
@@ -664,7 +802,7 @@ function _get_constraint_data(
     if iszero(coefficient)
         return
     end
-    _update_range(data.rhs_range, coefficient)
+    _update_rhs_range(data, coefficient, ref)
     if abs(coefficient) < data.threshold_small
         push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
@@ -715,7 +853,7 @@ function _get_constraint_data(
     if iszero(coefficient)
         return
     end
-    _update_range(data.rhs_range, coefficient)
+    _update_rhs_range(data, coefficient, ref)
     if abs(coefficient) < data.threshold_small
         push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
@@ -732,7 +870,7 @@ function _get_constraint_data(
 )
     coefficient = set.upper - func.constant
     if !(iszero(coefficient))
-        _update_range(data.rhs_range, coefficient)
+        _update_rhs_range(data, coefficient, ref)
         if abs(coefficient) < data.threshold_small
             push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
         elseif abs(coefficient) > data.threshold_large
@@ -743,7 +881,7 @@ function _get_constraint_data(
     if iszero(coefficient)
         return
     end
-    _update_range(data.rhs_range, coefficient)
+    _update_rhs_range(data, coefficient, ref)
     if abs(coefficient) < data.threshold_small
         push!(data.rhs_small, SmallRHSCoefficient(ref, coefficient))
     elseif abs(coefficient) > data.threshold_large
@@ -799,7 +937,7 @@ end
 
 function _get_variable_data(data, variable, coefficient::Number)
     if !(iszero(coefficient))
-        _update_range(data.bounds_range, coefficient)
+        _update_bound_range(data, coefficient, variable)
         if abs(coefficient) < data.threshold_small
             push!(
                 data.bounds_small,

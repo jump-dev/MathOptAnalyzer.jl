@@ -90,26 +90,29 @@ function MathOptAnalyzer._summarize(
     return print(io, "# NonconvexQuadraticConstraint")
 end
 
-function MathOptAnalyzer._summarize(
-    io::IO,
-    ::Type{LargeDynamicRangeConstraint},
-)
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeConstraint})
     return print(io, "# LargeDynamicRangeConstraint")
 end
 
-function MathOptAnalyzer._summarize(
-    io::IO,
-    ::Type{LargeDynamicRangeMatrix},
-)
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeMatrix})
     return print(io, "# LargeDynamicRangeMatrix")
-end 
+end
 
-function MathOptAnalyzer._summarize(
-    io::IO,
-    ::Type{LargeDynamicRangeObjective},
-)
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeObjective})
     return print(io, "# LargeDynamicRangeObjective")
-end 
+end
+
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeRHS})
+    return print(io, "# LargeDynamicRangeRHS")
+end
+
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeVariable})
+    return print(io, "# LargeDynamicRangeVariable")
+end
+
+function MathOptAnalyzer._summarize(io::IO, ::Type{LargeDynamicRangeBound})
+    return print(io, "# LargeDynamicRangeBound")
+end
 
 function MathOptAnalyzer._verbose_summarize(
     io::IO,
@@ -801,6 +804,40 @@ end
 
 function MathOptAnalyzer._verbose_summarize(
     io::IO,
+    ::Type{LargeDynamicRangeRHS},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeRHS`
+
+        ## What
+
+        A `LargeDynamicRangeRHS` issue is identified when the constraints
+        right-hand-side has a large dynamic range, that is, the ratio between
+        the largest and smallest rhs is large.
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the right-hand-side is correct. Check if the units of variables
+        and coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        right-hand-sides can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
     ::Type{LargeDynamicRangeVariable},
 )
     return print(
@@ -823,6 +860,41 @@ function MathOptAnalyzer._verbose_summarize(
         ## How to fix
 
         Check if the variable is correct. Check if the units of variables and
+        coefficients are correct. Check if the number makes is
+        reasonable given that solver have tolerances. Sometimes these
+        coefficients can be replaced by zeros.
+
+        ## More information
+
+        No extra information for this issue.
+        """,
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    ::Type{LargeDynamicRangeBound},
+)
+    return print(
+        io,
+        """
+        # `LargeDynamicRangeBound`
+
+        ## What
+
+        A `LargeDynamicRangeBound` issue is identified when the dynamic range of
+        the bound is larger than `threshold_dynamic_range_single`. The dynamic range is
+        defined as the ratio between the largest and smallest bounds of all
+        variables
+
+        ## Why
+
+        Large dynamic ranges can lead to numerical instability in the solution
+        process.
+
+        ## How to fix
+
+        Check if the bound is correct. Check if the units of variables and
         coefficients are correct. Check if the number makes is
         reasonable given that solver have tolerances. Sometimes these
         coefficients can be replaced by zeros.
@@ -1035,7 +1107,18 @@ function MathOptAnalyzer._summarize(
     issue::LargeDynamicRangeConstraint,
     model,
 )
-    return print(io, MathOptAnalyzer._name(issue.ref, model), " : ", issue.range)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        MathOptAnalyzer._name(issue.ref, model),
+        " : ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
 end
 
 function MathOptAnalyzer._summarize(
@@ -1043,7 +1126,17 @@ function MathOptAnalyzer._summarize(
     issue::LargeDynamicRangeMatrix,
     model,
 )
-    return print(io, "Matrix has a Large dynamic range : ", issue.range)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Matrix dynamic range : ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
 end
 
 function MathOptAnalyzer._summarize(
@@ -1051,7 +1144,31 @@ function MathOptAnalyzer._summarize(
     issue::LargeDynamicRangeObjective,
     model,
 )
-    return print(io, "Objective has a Large dynamic range : ", issue.range)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Objective dynamic range : ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._summarize(io::IO, issue::LargeDynamicRangeRHS, model)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "RHS dynamic range : ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
 end
 
 function MathOptAnalyzer._summarize(
@@ -1059,11 +1176,38 @@ function MathOptAnalyzer._summarize(
     issue::LargeDynamicRangeVariable,
     model,
 )
+    range = issue.upper / issue.lower
     return print(
         io,
         MathOptAnalyzer._name(issue.variable, model),
         " : ",
-        issue.range,
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._summarize(
+    io::IO,
+    issue::LargeDynamicRangeBound,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        MathOptAnalyzer._name(issue.variable_lower, model),
+        " -- ",
+        MathOptAnalyzer._name(issue.variable_upper, model),
+        " : ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
     )
 end
 
@@ -1306,6 +1450,118 @@ function MathOptAnalyzer._verbose_summarize(
     return print(io, "Constraint: ", MathOptAnalyzer._name(issue.ref, model))
 end
 
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeConstraint,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Constraint: ",
+        MathOptAnalyzer._name(issue.ref, model),
+        " with dynamic range ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeMatrix,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Matrix dynamic range: ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeObjective,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Objective dynamic range: ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeRHS,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "RHS dynamic range: ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeVariable,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Variable: ",
+        MathOptAnalyzer._name(issue.variable, model),
+        " with dynamic range ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
+function MathOptAnalyzer._verbose_summarize(
+    io::IO,
+    issue::LargeDynamicRangeBound,
+    model,
+)
+    range = issue.upper / issue.lower
+    return print(
+        io,
+        "Bounds with dynamic range: ",
+        range,
+        " , [",
+        issue.lower,
+        ", ",
+        issue.upper,
+        "]",
+    )
+end
+
 function MathOptAnalyzer.list_of_issues(
     data::Data,
     ::Type{VariableNotInConstraints},
@@ -1420,6 +1676,48 @@ function MathOptAnalyzer.list_of_issues(
     return data.nonconvex_rows
 end
 
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeConstraint},
+)
+    return data.large_dynamic_range_constraints
+end
+
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeMatrix},
+)
+    return data.large_dynamic_range_matrix
+end
+
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeObjective},
+)
+    return data.large_dynamic_range_objective
+end
+
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeRHS},
+)
+    return data.large_dynamic_range_rhs
+end
+
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeVariable},
+)
+    return data.large_dynamic_range_variables
+end
+
+function MathOptAnalyzer.list_of_issues(
+    data::Data,
+    ::Type{LargeDynamicRangeBound},
+)
+    return data.large_dynamic_range_bounds
+end
+
 function MathOptAnalyzer.list_of_issue_types(data::Data)
     ret = Type[]
     for type in (
@@ -1441,6 +1739,12 @@ function MathOptAnalyzer.list_of_issue_types(data::Data)
         LargeMatrixQuadraticCoefficient,
         NonconvexQuadraticConstraint,
         NonconvexQuadraticObjective,
+        LargeDynamicRangeConstraint,
+        LargeDynamicRangeMatrix,
+        LargeDynamicRangeObjective,
+        LargeDynamicRangeRHS,
+        LargeDynamicRangeVariable,
+        LargeDynamicRangeBound,
     )
         if !isempty(MathOptAnalyzer.list_of_issues(data, type))
             push!(ret, type)
@@ -1455,6 +1759,18 @@ function summarize_configurations(io::IO, data::Data)
     print(io, "  Dense entries threshold: ", data.threshold_dense_entries, "\n")
     print(io, "  Small coefficient threshold: ", data.threshold_small, "\n")
     print(io, "  Large coefficient threshold: ", data.threshold_large, "\n")
+    print(
+        io,
+        "  Individual dynamic range threshold: ",
+        data.threshold_dynamic_range_single,
+        "\n",
+    )
+    print(
+        io,
+        "  Matrix dynamic range threshold: ",
+        data.threshold_dynamic_range_matrix,
+        "\n",
+    )
     return
 end
 

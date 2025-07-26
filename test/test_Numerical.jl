@@ -30,7 +30,7 @@ function test_variable_bounds()
     @variable(model, zg == 4e+11)
     data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
-    @test length(list) == 3
+    @test length(list) == 4
     ret = MathOptAnalyzer.list_of_issues(
         data,
         MathOptAnalyzer.Numerical.VariableNotInConstraints,
@@ -46,6 +46,11 @@ function test_variable_bounds()
         MathOptAnalyzer.Numerical.LargeBoundCoefficient,
     )
     @test length(ret) == 3
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeBound,
+    )
+    @test length(ret) == 1
 
     buf = IOBuffer()
     MathOptAnalyzer.summarize(
@@ -1152,7 +1157,7 @@ function test_vector_functions()
     @constraint(model, c6, [2 * x[1] * x[1]] in Zeros())
     data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
-    @test length(list) == 6
+    @test length(list) == 8
     #
     ret = MathOptAnalyzer.list_of_issues(
         data,
@@ -1196,6 +1201,23 @@ function test_vector_functions()
     )
     @test length(ret) == 1
     @test MathOptAnalyzer.variable(ret[], model) == x[3]
+    #
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x[1], x[1]]
+    @test MathOptAnalyzer.values(ret[]) == [1e-9, 1e+9]
+    #
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeVariable,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variable(ret[], model) == x[1]
+    @test MathOptAnalyzer.constraints(ret[], model) == [c1, c2]
+    @test MathOptAnalyzer.values(ret[]) == [1e-9, 1e+9]
     return
 end
 
@@ -1205,7 +1227,7 @@ function test_variable_interval()
     @objective(model, Min, x)
     data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
-    @test length(list) == 3
+    @test length(list) == 4
     ret = MathOptAnalyzer.list_of_issues(
         data,
         MathOptAnalyzer.Numerical.SmallBoundCoefficient,
@@ -1228,6 +1250,13 @@ function test_variable_interval()
     )
     @test length(ret) == 1
     @test MathOptAnalyzer.variable(ret[], model) == x
+    #
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeBound,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
     return
 end
 
@@ -1354,6 +1383,279 @@ function test_more_than_max_issues()
     @test occursin("Showing first ", str)
     @test occursin(" issues ommitted)\n\n", str)
 
+    return
+end
+
+function test_dyn_range_constraint_and_matrix()
+    model = Model()
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c, 1e-4 * x + 7e4 * y <= 4)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeConstraint,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.constraint(ret[], model) == c
+    @test MathOptAnalyzer.variables(ret[], model) == [x, y]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeConstraint,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeConstraint`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeConstraint,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeConstraint"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Constraint: ")
+    @test contains(str, " with dynamic range ")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, " : ")
+    @test contains(str, ", [")
+    #
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x, y]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeMatrix`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeMatrix"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Matrix dynamic range")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, "[")
+    return
+end
+
+function test_dyn_range_variable_and_matrix()
+    model = Model()
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c1, 1e-4 * x + y <= 4)
+    @constraint(model, c2, 7e4 * x + y <= 4)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 2
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeVariable,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variable(ret[], model) == x
+    @test MathOptAnalyzer.constraints(ret[], model) == [c1, c2]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeVariable,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeVariable`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeVariable,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeVariable"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Variable:")
+    @test contains(str, " with dynamic range ")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, " : ")
+    @test contains(str, ", [")
+    #
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x, x]
+    @test MathOptAnalyzer.constraints(ret[], model) == [c1, c2]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeMatrix`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeMatrix"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Matrix dynamic range")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, "[")
+    return
+end
+
+function test_dyn_range_objective()
+    model = Model()
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c1, 1 * x + y <= 4)
+    @constraint(model, c2, 2 * x + y <= 4)
+    @objective(model, Min, 1e-4 * x + 7e4 * y)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeObjective,
+    )
+    @show ret
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x, y]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeObjective,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeObjective`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeObjective,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeObjective"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Objective dynamic range")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, "[")
+    return
+end
+
+function test_dyn_range_rhs()
+    model = Model()
+    @variable(model, x)
+    @variable(model, y)
+    @constraint(model, c1, x + y <= 1e-4)
+    @constraint(model, c2, x + y <= 7e4)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeRHS,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.constraints(ret[], model) == [c1, c2]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeRHS,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeRHS`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeRHS,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeRHS"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "RHS dynamic range:")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, " : ")
+    @test contains(str, ", [")
+    return
+end
+
+function test_dyn_range_bounds()
+    model = Model()
+    @variable(model, x <= 1e-4)
+    @variable(model, y >= 7e4)
+    @constraint(model, c1, x + y <= 4)
+    @constraint(model, c2, x - y >= 3)
+    data = MathOptAnalyzer.analyze(MathOptAnalyzer.Numerical.Analyzer(), model)
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeBound,
+    )
+    @test length(ret) == 1
+    @test MathOptAnalyzer.variables(ret[], model) == [x, y]
+    @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]
+    #
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeBound,
+    )
+    str = String(take!(buf))
+    @test startswith(str, "# `LargeDynamicRangeBound`")
+    MathOptAnalyzer.summarize(
+        buf,
+        MathOptAnalyzer.Numerical.LargeDynamicRangeBound,
+        verbose = false,
+    )
+    str = String(take!(buf))
+    @test str == "# LargeDynamicRangeBound"
+    #
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = true)
+    str = String(take!(buf))
+    @test startswith(str, "Bounds with dynamic range:")
+    MathOptAnalyzer.summarize(buf, ret[1], verbose = false)
+    str = String(take!(buf))
+    @test contains(str, " : ")
+    @test contains(str, ", [")
     return
 end
 
