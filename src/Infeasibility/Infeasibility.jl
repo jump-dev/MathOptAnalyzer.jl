@@ -8,9 +8,6 @@ module Infeasibility
 import MathOptInterface as MOI
 import MathOptAnalyzer
 
-include("intervals.jl")
-include("_eval_variables.jl")
-
 include("structs.jl")
 include("analyze.jl")
 include("summarize.jl")
