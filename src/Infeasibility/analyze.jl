@@ -40,7 +40,12 @@ function MathOptAnalyzer.analyze(
             func = MOI.get(model, MOI.ConstraintFunction(), constraints[1])
             push!(
                 out.infeasible_integrality,
-                InfeasibleIntegrality{T}(func, meta.lower_bound, meta.upper_bound, meta.set),
+                InfeasibleIntegrality{T}(
+                    func,
+                    meta.lower_bound,
+                    meta.upper_bound,
+                    meta.set,
+                ),
             )
         elseif typeof(meta) <: MOIIS.RangeData
             constraints = iis.constraints
@@ -50,16 +55,18 @@ function MathOptAnalyzer.analyze(
                 if !(typeof(con) <: MOI.ConstraintIndex{MOI.VariableIndex})
                     push!(
                         out.constraint_range,
-                        InfeasibleConstraintRange{T}(con, meta.lower_bound, meta.upper_bound, meta.set),
+                        InfeasibleConstraintRange{T}(
+                            con,
+                            meta.lower_bound,
+                            meta.upper_bound,
+                            meta.set,
+                        ),
                     )
                     break
                 end
             end
         else
-            push!(
-                out.iis,
-                IrreducibleInfeasibleSubset(iis.constraints),
-            )
+            push!(out.iis, IrreducibleInfeasibleSubset(iis.constraints))
         end
     end
     return out
