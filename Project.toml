@@ -1,6 +1,6 @@
 name = "MathOptAnalyzer"
 uuid = "d1179b25-476b-425c-b826-c7787f0fff83"
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Dualization = "191a621a-6537-11e9-281d-650236a99e60"
@@ -18,6 +18,6 @@ MathOptAnalyzerJuMPExt = "JuMP"
 [compat]
 Dualization = "0.6.0"
 JuMP = "1.24.0"
-MathOptIIS = "0.1.0"
+MathOptIIS = "0.1.1"
 MathOptInterface = "1.37.0"
 julia = "1.10"
