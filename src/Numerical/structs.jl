@@ -19,6 +19,8 @@ julia> data = MathOptAnalyzer.analyze(
     threshold_dense_entries = 1000,
     threshold_small = 1e-5,
     threshold_large = 1e+5,
+    threshold_dynamic_range_single = 1e+6,
+    threshold_dynamic_range_matrix = 1e+8,
 )
 ```
 
@@ -29,7 +31,11 @@ The additional parameters:
   constraint to be considered dense.
 - `threshold_small`: The threshold for small coefficients in the model.
 - `threshold_large`: The threshold for large coefficients in the model.
-
+- `threshold_dynamic_range_single`: The threshold for the range of coefficients
+  in the model with respect with individual columns, rows, objective
+  coefficients and rhs coefficients.
+- `threshold_dynamic_range_matrix`: The threshold for the range of coefficients
+  in the model with respect to the matrix of coefficients.
 """
 struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
@@ -428,7 +434,203 @@ julia> MathOptAnalyzer.summarize(
 struct NonconvexQuadraticConstraint <: AbstractNumericalIssue
     ref::MOI.ConstraintIndex
 end
+
 MathOptAnalyzer.constraint(issue::NonconvexQuadraticConstraint) = issue.ref
+
+"""
+    LargeDynamicRangeConstraint <: AbstractNumericalIssue
+
+The `LargeDynamicRangeConstraint` issue is identified when the dynamic range of
+a constraint is larger than `threshold_dynamic_range_single`. The dynamic range
+is defined as the ratio between the largest and smallest coefficients of the
+constraint.
+
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeConstraint
+)
+```
+"""
+struct LargeDynamicRangeConstraint <: AbstractNumericalIssue
+    ref::MOI.ConstraintIndex
+    variable_lower::MOI.VariableIndex
+    variable_upper::MOI.VariableIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.constraint(issue::LargeDynamicRangeConstraint)
+    return issue.ref
+end
+
+function MathOptAnalyzer.variables(issue::LargeDynamicRangeConstraint)
+    return [issue.variable_lower, issue.variable_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeConstraint)
+    return [issue.lower, issue.upper]
+end
+
+"""
+    LargeDynamicRangeMatrix <: AbstractNumericalIssue
+
+The `LargeDynamicRangeMatrix` issue is identified when the dynamic range of the
+matrix is larger than `threshold_dynamic_range_matrix`. The dynamic range is
+defined as the ratio between the largest and smallest coefficients of the
+matrix.
+
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix
+)
+```
+"""
+struct LargeDynamicRangeMatrix <: AbstractNumericalIssue
+    constraint_lower::MOI.ConstraintIndex
+    constraint_upper::MOI.ConstraintIndex
+    variable_lower::MOI.VariableIndex
+    variable_upper::MOI.VariableIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.constraints(issue::LargeDynamicRangeMatrix)
+    return [issue.constraint_lower, issue.constraint_upper]
+end
+
+function MathOptAnalyzer.variables(issue::LargeDynamicRangeMatrix)
+    return [issue.variable_lower, issue.variable_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeMatrix)
+    return [issue.lower, issue.upper]
+end
+
+"""
+    LargeDynamicRangeObjective <: AbstractNumericalIssue
+
+The `LargeDynamicRangeObjective` issue is identified when the dynamic range of
+the objective function is larger than `threshold_dynamic_range_single`. The
+dynamic range is defined as the ratio between the largest and smallest
+coefficients of the objective function.
+
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeObjective
+)
+```
+"""
+struct LargeDynamicRangeObjective <: AbstractNumericalIssue
+    variable_lower::MOI.VariableIndex
+    variable_upper::MOI.VariableIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.variables(issue::LargeDynamicRangeObjective)
+    return [issue.variable_lower, issue.variable_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeObjective)
+    return [issue.lower, issue.upper]
+end
+
+"""
+    LargeDynamicRangeRHS <: AbstractNumericalIssue
+
+The `LargeDynamicRangeRHS` issue is identified when the dynamic range of the
+right-hand side (RHS) vector is larger than `threshold_dynamic_range_rhs`. The
+dynamic range is defined as the ratio between the largest and smallest
+coefficients of the RHS vector.
+
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeRHS
+)
+```
+"""
+struct LargeDynamicRangeRHS <: AbstractNumericalIssue
+    constraint_lower::MOI.ConstraintIndex
+    constraint_upper::MOI.ConstraintIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.constraints(issue::LargeDynamicRangeRHS)
+    return [issue.constraint_lower, issue.constraint_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeRHS)
+    return [issue.lower, issue.upper]
+end
+
+"""
+    LargeDynamicRangeVariable <: AbstractNumericalIssue
+
+The `LargeDynamicRangeVariable` issue is identified when the dynamic range of a
+variable is larger than `threshold_dynamic_range_single`. The dynamic range is
+defined as the ratio between the largest and smallest coefficients of the
+variable inall constraint it appears.
+
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeVariable
+)
+```
+"""
+struct LargeDynamicRangeVariable <: AbstractNumericalIssue
+    variable::MOI.VariableIndex
+    constraint_lower::MOI.ConstraintIndex
+    constraint_upper::MOI.ConstraintIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.variable(issue::LargeDynamicRangeVariable)
+    return issue.variable
+end
+
+function MathOptAnalyzer.constraints(issue::LargeDynamicRangeVariable)
+    return [issue.constraint_lower, issue.constraint_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeVariable)
+    return [issue.lower, issue.upper]
+end
+
+"""
+    LargeDynamicRangeBound <: AbstractNumericalIssue
+
+The `LargeDynamicRangeBound` issue is identified when the dynamic range of the
+variables bounds is larger than `threshold_dynamic_range_single`. The dynamic
+range is defined as the ratio between the largest and smallest bounds of all
+variables.
+For more information, run:
+```julia
+julia> MathOptAnalyzer.summarize(
+    MathOptAnalyzer.Numerical.LargeDynamicRangeBound
+)
+```
+"""
+struct LargeDynamicRangeBound <: AbstractNumericalIssue
+    variable_lower::MOI.VariableIndex
+    variable_upper::MOI.VariableIndex
+    lower::Float64
+    upper::Float64
+end
+
+function MathOptAnalyzer.variables(issue::LargeDynamicRangeBound)
+    return [issue.variable_lower, issue.variable_upper]
+end
+
+function MathOptAnalyzer.values(issue::LargeDynamicRangeBound)
+    return [issue.lower, issue.upper]
+end
 
 """
     Data
@@ -443,6 +645,8 @@ Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
     threshold_dense_entries::Int = 1000
     threshold_small::Float64 = 1e-5
     threshold_large::Float64 = 1e+5
+    threshold_dynamic_range_single::Float64 = 1e+6
+    threshold_dynamic_range_matrix::Float64 = 1e+8
     # main numbers
     number_of_variables::Int = 0
     number_of_constraints::Int = 0
@@ -450,13 +654,45 @@ Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
         Tuple{DataType,DataType,Int}[]
     # objective_info::Any
     matrix_nnz::Int = 0
-    # ranges
+    # ranges are filled after the caches for large and small coefficients
     matrix_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     bounds_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     rhs_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     objective_range::Vector{Float64} = sizehint!(Float64[1.0, 1.0], 2)
     # cache data
-    variables_in_constraints::Set{MOI.VariableIndex} = Set{MOI.VariableIndex}()
+    _variables_in_constraints::Set{MOI.VariableIndex} = Set{MOI.VariableIndex}()
+    #  for computing dynamic ranges
+    _large_matrix_coefficient::Vector{
+        Tuple{Float64,MOI.ConstraintIndex,MOI.VariableIndex},
+    } = sizehint!(Tuple{Float64,MOI.ConstraintIndex,MOI.VariableIndex}[], 1)
+    _small_matrix_coefficient::Vector{
+        Tuple{Float64,MOI.ConstraintIndex,MOI.VariableIndex},
+    } = sizehint!(Tuple{Float64,MOI.ConstraintIndex,MOI.VariableIndex}[], 1)
+    _large_variable_coefficient::Dict{
+        MOI.VariableIndex,
+        Tuple{Float64,MOI.ConstraintIndex},
+    } = Dict{MOI.VariableIndex,Tuple{Float64,MOI.ConstraintIndex}}()
+    _small_variable_coefficient::Dict{
+        MOI.VariableIndex,
+        Tuple{Float64,MOI.ConstraintIndex},
+    } = Dict{MOI.VariableIndex,Tuple{Float64,MOI.ConstraintIndex}}()
+    _large_rhs_coefficient::Vector{Tuple{Float64,MOI.ConstraintIndex}} =
+        sizehint!(Tuple{Float64,MOI.ConstraintIndex}[], 1)
+    _small_rhs_coefficient::Vector{Tuple{Float64,MOI.ConstraintIndex}} =
+        sizehint!(Tuple{Float64,MOI.ConstraintIndex}[], 1)
+    _large_objective_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
+    _small_objective_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
+    _large_bound_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
+    _small_bound_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
+    # the two below are used to compute dynamic ranges of constraint functions
+    _large_constraint_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
+    _small_constraint_coefficient::Vector{Tuple{Float64,MOI.VariableIndex}} =
+        sizehint!(Tuple{Float64,MOI.VariableIndex}[], 1)
     # variables analysis
     variables_not_in_constraints::Vector{VariableNotInConstraints} =
         VariableNotInConstraints[]
@@ -470,6 +706,19 @@ Base.@kwdef mutable struct Data <: MathOptAnalyzer.AbstractData
     matrix_large::Vector{LargeMatrixCoefficient} = LargeMatrixCoefficient[]
     rhs_small::Vector{SmallRHSCoefficient} = SmallRHSCoefficient[]
     rhs_large::Vector{LargeRHSCoefficient} = LargeRHSCoefficient[]
+    # dynamic range analysis
+    large_dynamic_range_constraints::Vector{LargeDynamicRangeConstraint} =
+        LargeDynamicRangeConstraint[]
+    large_dynamic_range_matrix::Vector{LargeDynamicRangeMatrix} =
+        LargeDynamicRangeMatrix[]
+    large_dynamic_range_objective::Vector{LargeDynamicRangeObjective} =
+        LargeDynamicRangeObjective[]
+    large_dynamic_range_rhs::Vector{LargeDynamicRangeRHS} =
+        LargeDynamicRangeRHS[]
+    large_dynamic_range_variables::Vector{LargeDynamicRangeVariable} =
+        LargeDynamicRangeVariable[]
+    large_dynamic_range_bounds::Vector{LargeDynamicRangeBound} =
+        LargeDynamicRangeBound[]
     # quadratic constraints analysis
     has_quadratic_constraints::Bool = false
     nonconvex_rows::Vector{NonconvexQuadraticConstraint} =
