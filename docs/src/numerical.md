@@ -35,6 +35,12 @@ MathOptAnalyzer.Numerical.SmallMatrixQuadraticCoefficient
 MathOptAnalyzer.Numerical.LargeMatrixQuadraticCoefficient
 MathOptAnalyzer.Numerical.NonconvexQuadraticObjective
 MathOptAnalyzer.Numerical.NonconvexQuadraticConstraint
+MathOptAnalyzer.Numerical.LargeDynamicRangeConstraint
+MathOptAnalyzer.Numerical.LargeDynamicRangeMatrix
+MathOptAnalyzer.Numerical.LargeDynamicRangeObjective
+MathOptAnalyzer.Numerical.LargeDynamicRangeRHS
+MathOptAnalyzer.Numerical.LargeDynamicRangeVariable
+MathOptAnalyzer.Numerical.LargeDynamicRangeBound
 ```
 
 These issues are saved in the data structure that is returned from the `MathOptAnalyzer.analyze` function:
