@@ -1546,7 +1546,6 @@ function test_dyn_range_objective()
         data,
         MathOptAnalyzer.Numerical.LargeDynamicRangeObjective,
     )
-    @show ret
     @test length(ret) == 1
     @test MathOptAnalyzer.variables(ret[], model) == [x, y]
     @test MathOptAnalyzer.values(ret[]) == [1e-4, 7e4]

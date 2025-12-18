@@ -20,7 +20,7 @@ julia> data = MathOptAnalyzer.analyze(
     dual_objective::Union{Nothing, Float64} = nothing,
     atol::Float64 = 1e-6,
     skip_missing::Bool = false,
-    dual_check = true,
+    dual_check::Bool = true,
 );
 ```
 
@@ -39,9 +39,9 @@ The additional parameters:
 - `atol`: The absolute tolerance for feasibility checking.
 - `skip_missing`: If `true`, constraints with missing variables in the provided
   point will be ignored.
-- `dual_check`: If `true`, it will perform dual feasibility checking. Disabling
-  the dual check will also disable complementarity checking and dual objective
-  checks.
+- `dual_check`: If `true`, it will perform dual feasibility checking if the
+  model is compatible with Dualization.jl. Disabling the dual check will also
+  disable complementarity checking and dual objective checks.
 """
 struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
