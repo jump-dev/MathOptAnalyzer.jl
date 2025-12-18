@@ -12,27 +12,16 @@ function MathOptAnalyzer.analyze(
     dual_objective::Union{Nothing,Float64} = nothing,
     atol::Float64 = 1e-6,
     skip_missing::Bool = false,
-    dual_check = true,
+    dual_check::Bool = _can_dualize(model),
 )
-    can_dualize = false
-    if dual_check
-        can_dualize = _can_dualize(model)
-        if !can_dualize
-            println(
-                "The model cannot be dualized. Automatically setting `dual_check = false`.",
-            )
-            dual_check = false
-        end
-    end
-
-    data = Data(
-        primal_point = primal_point,
-        dual_point = dual_point,
-        primal_objective = primal_objective,
-        dual_objective = dual_objective,
-        atol = atol,
-        skip_missing = skip_missing,
-        dual_check = dual_check,
+    data = Data(;
+        primal_point,
+        dual_point,
+        primal_objective,
+        dual_objective,
+        atol,
+        skip_missing,
+        dual_check,
     )
 
     if data.primal_point === nothing
@@ -423,24 +412,14 @@ function _last_dual_solution(model::MOI.ModelLike)
 end
 
 function _can_dualize(model::MOI.ModelLike)
-    types = MOI.get(model, MOI.ListOfConstraintTypesPresent())
-
-    for (F, S) in types
+    for (F, S) in MOI.get(model, MOI.ListOfConstraintTypesPresent())
         if !Dualization.supported_constraint(F, S)
             return false
         end
     end
-
     F = MOI.get(model, MOI.ObjectiveFunctionType())
-
     if !Dualization.supported_objective(F)
         return false
     end
-
-    sense = MOI.get(model, MOI.ObjectiveSense())
-    if sense == MOI.FEASIBILITY_SENSE
-        return false
-    end
-
-    return true
+    return MOI.get(model, MOI.ObjectiveSense()) != MOI.FEASIBILITY_SENSE
 end
