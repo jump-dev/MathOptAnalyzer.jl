@@ -263,8 +263,8 @@ function MathOptAnalyzer._verbose_summarize(
         ## How to fix
 
         Check if the coefficient is correct. Check if the units of variables and
-        coefficients are correct. Check if the number makes is
-        reasonable given that solver have tolerances. Sometimes these
+        coefficients are correct. Check if the number makes sense and is
+        reasonable given the solver's tolerances. Sometimes these
         coefficients can be replaced by zeros.
 
         ## More information
