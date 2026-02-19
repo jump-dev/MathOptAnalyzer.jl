@@ -5,8 +5,9 @@
 
 module Infeasibility
 
-import MathOptInterface as MOI
 import MathOptAnalyzer
+import MathOptIIS as MOIIS
+import MathOptInterface as MOI
 
 include("structs.jl")
 include("analyze.jl")
