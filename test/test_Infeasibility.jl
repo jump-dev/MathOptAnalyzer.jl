@@ -7,8 +7,10 @@ module TestInfeasibility
 
 using JuMP
 using Test
+
 import HiGHS
 import MathOptAnalyzer
+import SCS
 
 function runtests()
     for name in names(@__MODULE__; all = true)
@@ -588,6 +590,37 @@ function test_iis_spare()
     @test Set(iis) == Set([c2, c1])
     io = IOBuffer()
     MathOptAnalyzer.summarize(io, ret[1], verbose = true, model = model)
+    return
+end
+
+function test_iis_bridges()
+    model = Model(SCS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @variable(model, 0 <= z <= 20)
+    @constraint(model, c0, 2z <= 1)
+    @constraint(model, c00, 3z <= 1)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    @test termination_status(model) == INFEASIBLE
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model,
+        optimizer = SCS.Optimizer,
+    )
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 1
+    ret = MathOptAnalyzer.list_of_issues(data, list[1])
+    @test length(ret) == 1
+    @test length(ret[].constraint) == 2
+    @test Set([ret[].constraint[1], ret[].constraint[2]]) ==
+          Set(JuMP.index.([c2, c1]))
+    iis = MathOptAnalyzer.constraints(ret[], model)
+    @test length(iis) == 2
+    @test Set(iis) == Set([c2, c1])
     return
 end
 
