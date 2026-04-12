@@ -6,7 +6,7 @@
 module Infeasibility
 
 import MathOptAnalyzer
-import MathOptIIS as MOIIS
+import MathOptIIS
 import MathOptInterface as MOI
 
 include("structs.jl")
