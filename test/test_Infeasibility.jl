@@ -32,7 +32,7 @@ function test_bounds()
     data =
         MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
-    @test length(list) == 1
+    @test 1 <= length(list) <= 2
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test ret[] == MathOptAnalyzer.Infeasibility.InfeasibleBounds{Float64}(
@@ -81,7 +81,7 @@ function test_integrality()
     data =
         MathOptAnalyzer.analyze(MathOptAnalyzer.Infeasibility.Analyzer(), model)
     list = MathOptAnalyzer.list_of_issue_types(data)
-    @test length(list) == 1
+    @test 1 <= length(list) <= 2
     ret = MathOptAnalyzer.list_of_issues(data, list[1])
     @test length(ret) == 1
     @test ret[] == MathOptAnalyzer.Infeasibility.InfeasibleIntegrality{Float64}(

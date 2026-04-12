@@ -16,8 +16,8 @@ JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 MathOptAnalyzerJuMPExt = "JuMP"
 
 [compat]
-Dualization = "0.6.0"
-JuMP = "1.24.0"
-MathOptIIS = "0.1.1"
-MathOptInterface = "1.37.0"
+Dualization = "0.7"
+JuMP = "1.24"
+MathOptIIS = "0.2"
+MathOptInterface = "1.37"
 julia = "1.10"
