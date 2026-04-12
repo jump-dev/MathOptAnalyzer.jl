@@ -3,9 +3,14 @@
 # Use of this source code is governed by an MIT-style license that can be found
 # in the LICENSE.md file or at https://opensource.org/licenses/MIT.
 
-function _add_result(out::Data, model, iis, meta::MathOptIIS.BoundsData)
+function _add_result(
+    out::Data,
+    model,
+    iis,
+    meta::MathOptIIS.Metadata{T,Nothing},
+) where {T}
     @assert length(iis.constraints) == 2
-    err = InfeasibleBounds{Float64}(
+    err = InfeasibleBounds{T}(
         MOI.get(model, MOI.ConstraintFunction(), iis.constraints[1]),
         meta.lower_bound,
         meta.upper_bound,
@@ -14,9 +19,14 @@ function _add_result(out::Data, model, iis, meta::MathOptIIS.BoundsData)
     return
 end
 
-function _add_result(out::Data, model, iis, meta::MathOptIIS.IntegralityData)
+function _add_result(
+    out::Data,
+    model,
+    iis,
+    meta::MathOptIIS.Metadata{T,S},
+) where {T,S<:Union{MOI.Integer,MOI.ZeroOne}}
     @assert length(iis.constraints) >= 2
-    err = InfeasibleIntegrality{Float64}(
+    err = InfeasibleIntegrality{T}(
         MOI.get(model, MOI.ConstraintFunction(), iis.constraints[1]),
         meta.lower_bound,
         meta.upper_bound,
@@ -26,13 +36,18 @@ function _add_result(out::Data, model, iis, meta::MathOptIIS.IntegralityData)
     return
 end
 
-function _add_result(out::Data, model, iis, meta::MOMathOptIISIIS.RangeData)
+function _add_result(
+    out::Data,
+    model,
+    iis,
+    meta::MathOptIIS.Metadata{T,S},
+) where {T,S<:MOI.AbstractSet}
     @assert length(iis.constraints) >= 1
     for con in iis.constraints
         if con isa MOI.ConstraintIndex{MOI.VariableIndex}
             continue
         end
-        err = InfeasibleConstraintRange{Float64}(
+        err = InfeasibleConstraintRange{T}(
             con,
             meta.lower_bound,
             meta.upper_bound,
