@@ -1,6 +1,6 @@
 name = "MathOptAnalyzer"
 uuid = "d1179b25-476b-425c-b826-c7787f0fff83"
-version = "0.1.3"
+version = "0.1.2"
 
 [deps]
 Dualization = "191a621a-6537-11e9-281d-650236a99e60"
