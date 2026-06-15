@@ -211,8 +211,9 @@ Use the solver's native `MOI.compute_conflict!` to find an IIS and categorize
 the results into an `Infeasibility.Data` struct.
 """
 function _analyze_native_iis(model::MOI.ModelLike, optimizer)
-    # Instantiate solver and copy model
-    solver = MOI.instantiate(optimizer)
+    # Instantiate solver with bridges so that constraint types the solver
+    # doesn't natively support (e.g. Interval) are automatically transformed.
+    solver = MOI.instantiate(optimizer; with_bridge_type = Float64)
     if MOI.supports(solver, MOI.Silent())
         MOI.set(solver, MOI.Silent(), true)
     end
@@ -220,7 +221,6 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
     reverse_map = _reverse_index_map(index_map)
 
     # Solve to confirm infeasibility, then compute IIS
-    MOI.optimize!(solver)
     MOI.compute_conflict!(solver)
 
     status = MOI.get(solver, MOI.ConflictStatus())
@@ -284,6 +284,7 @@ function MathOptAnalyzer.analyze(
                 "Native IIS computation failed ($(typeof(err))); " *
                 "falling back to MathOptIIS elastic filter.",
             )
+            @error("Error details: $err")
         end
     end
     # Fallback: MathOptIIS elastic-filter path
