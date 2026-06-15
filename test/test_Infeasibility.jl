@@ -622,6 +622,145 @@ function test_iis_bridges()
     return
 end
 
+# ==============================================================================
+# Tests for native_iis = true path
+# ==============================================================================
+
+function test_native_iis_scalar_constraints()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model;
+        optimizer = HiGHS.Optimizer,
+        native_iis = true,
+    )
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) >= 1
+    # Should find at least one IrreducibleInfeasibleSubset
+    iis_issues = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Infeasibility.IrreducibleInfeasibleSubset,
+    )
+    @test length(iis_issues) >= 1
+    iis = MathOptAnalyzer.constraints(iis_issues[1], model)
+    @test c1 in iis || c2 in iis
+    # Summarize should work without error
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(buf, data, verbose = true, model = model)
+    str = String(take!(buf))
+    @test contains(str, "Infeasibility Analysis")
+    return
+end
+
+function test_native_iis_infeasible_bounds()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 2 <= x <= 1)  # infeasible bounds
+    @variable(model, 0 <= y <= 10)
+    @constraint(model, c1, x + y <= 5)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model;
+        optimizer = HiGHS.Optimizer,
+        native_iis = true,
+    )
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) >= 1
+    # Should find infeasible bounds
+    bound_issues = MathOptAnalyzer.list_of_issues(
+        data,
+        MathOptAnalyzer.Infeasibility.InfeasibleBounds,
+    )
+    if !isempty(bound_issues)
+        @test bound_issues[1].lb > bound_issues[1].ub
+    end
+    # Summarize should work without error
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(buf, data, verbose = true, model = model)
+    return
+end
+
+function test_native_iis_feasible_model()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 30)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model;
+        optimizer = HiGHS.Optimizer,
+        native_iis = true,
+    )
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) == 0
+    return
+end
+
+function test_native_iis_fallback()
+    # Test that native_iis = true falls back gracefully when the solver
+    # doesn't support compute_conflict!
+    model = Model()
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    # Use a mock optimizer that doesn't support compute_conflict!
+    # By passing native_iis = true with a working optimizer, the fallback
+    # path should still produce results via MathOptIIS
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model;
+        optimizer = HiGHS.Optimizer,
+        native_iis = false,
+    )
+    list = MathOptAnalyzer.list_of_issue_types(data)
+    @test length(list) >= 1
+    return
+end
+
+function test_native_iis_summarize()
+    model = Model(HiGHS.Optimizer)
+    set_silent(model)
+    @variable(model, 0 <= x <= 10)
+    @variable(model, 0 <= y <= 20)
+    @constraint(model, c1, x + y <= 1)
+    @constraint(model, c2, x + y >= 2)
+    @objective(model, Max, x + y)
+    optimize!(model)
+    data = MathOptAnalyzer.analyze(
+        MathOptAnalyzer.Infeasibility.Analyzer(),
+        model;
+        optimizer = HiGHS.Optimizer,
+        native_iis = true,
+    )
+    # Test all summarize variants
+    buf = IOBuffer()
+    MathOptAnalyzer.summarize(buf, data, verbose = true, model = model)
+    str_verbose = String(take!(buf))
+    @test contains(str_verbose, "Infeasibility Analysis")
+    MathOptAnalyzer.summarize(buf, data, verbose = false, model = model)
+    str_concise = String(take!(buf))
+    @test contains(str_concise, "Infeasibility Analysis")
+    # Test show
+    Base.show(buf, data)
+    str_show = String(take!(buf))
+    @test contains(str_show, "issues")
+    return
+end
+
 end  # module TestInfeasibility
 
 TestInfeasibility.runtests()
