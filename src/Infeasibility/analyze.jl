@@ -220,7 +220,6 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
     index_map = MOI.copy_to(solver, model)
     reverse_map = _reverse_index_map(index_map)
 
-    # Solve to confirm infeasibility, then compute IIS
     MOI.compute_conflict!(solver)
 
     status = MOI.get(solver, MOI.ConflictStatus())
@@ -271,13 +270,7 @@ function MathOptAnalyzer.analyze(
         catch err
             # Only swallow errors indicating the solver doesn't support
             # compute_conflict! — rethrow anything else
-            if !(
-                err isa Union{
-                    MethodError,
-                    MOI.UnsupportedError,
-                    ErrorException,
-                }
-            )
+            if !(err isa Union{MethodError,MOI.UnsupportedError,ErrorException})
                 rethrow(err)
             end
             @warn(
