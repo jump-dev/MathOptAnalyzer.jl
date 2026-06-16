@@ -219,7 +219,7 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
     end
     index_map = MOI.copy_to(solver, model)
     reverse_map = _reverse_index_map(index_map)
-    
+
     MOI.optimize!(solver) # make sure model is infeasible 
     MOI.compute_conflict!(solver)
 
