@@ -15,6 +15,7 @@ import SCS
 function runtests()
     for name in names(@__MODULE__; all = true)
         if startswith("$name", "test_")
+            @show name
             @testset "$(name)" begin
                 getfield(@__MODULE__, name)()
             end
