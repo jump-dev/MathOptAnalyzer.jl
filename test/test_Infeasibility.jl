@@ -772,10 +772,13 @@ and `_is_bound_constraint` (lines 91–92, 100, 103, 105, 118).
 """
 function test_helper_is_variable_constraint()
     # Both dispatch methods of _is_variable_constraint
-    ci_vi =
-        MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(1)
-    ci_saf =
-        MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}(1)
+    ci_vi = MOI.ConstraintIndex{MOI.VariableIndex,MOI.LessThan{Float64}}(1)
+    ci_saf = MOI.ConstraintIndex{
+        MOI.ScalarAffineFunction{Float64},
+        MOI.LessThan{Float64},
+    }(
+        1,
+    )
     @test MathOptAnalyzer.Infeasibility._is_variable_constraint(ci_vi) == true
     @test MathOptAnalyzer.Infeasibility._is_variable_constraint(ci_saf) == false
     return
@@ -791,8 +794,12 @@ function test_helper_is_integrality_constraint()
     @test MathOptAnalyzer.Infeasibility._is_integrality_constraint(ci_lt) ==
           false
     # Non-VariableIndex fallback returning false (line 105)
-    ci_saf =
-        MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}(1)
+    ci_saf = MOI.ConstraintIndex{
+        MOI.ScalarAffineFunction{Float64},
+        MOI.LessThan{Float64},
+    }(
+        1,
+    )
     @test MathOptAnalyzer.Infeasibility._is_integrality_constraint(ci_saf) ==
           false
     return
@@ -800,8 +807,12 @@ end
 
 function test_helper_is_bound_constraint()
     # Non-VariableIndex fallback returning false (line 118)
-    ci_saf =
-        MOI.ConstraintIndex{MOI.ScalarAffineFunction{Float64},MOI.LessThan{Float64}}(1)
+    ci_saf = MOI.ConstraintIndex{
+        MOI.ScalarAffineFunction{Float64},
+        MOI.LessThan{Float64},
+    }(
+        1,
+    )
     @test MathOptAnalyzer.Infeasibility._is_bound_constraint(ci_saf) == false
     return
 end
@@ -903,7 +914,11 @@ function test_categorize_native_iis_integrality()
     # Explicit element type so the vector is Vector{ConstraintIndex} not
     # Vector{ConstraintIndex{VariableIndex}}
     conflicting = MOI.ConstraintIndex[ci_gt, ci_lt, ci_int]
-    MathOptAnalyzer.Infeasibility._categorize_native_iis!(out, model_moi, conflicting)
+    MathOptAnalyzer.Infeasibility._categorize_native_iis!(
+        out,
+        model_moi,
+        conflicting,
+    )
     # The integer + bound conflict should be classified as InfeasibleIntegrality
     @test length(out.infeasible_integrality) == 1
     @test out.infeasible_integrality[1].lb ≈ 2.2
@@ -924,7 +939,11 @@ function test_categorize_native_iis_scalar_constraint()
     ci_saf = MOI.add_constraint(model_moi, f, MOI.LessThan(1.0))
     out = MathOptAnalyzer.Infeasibility.Data()
     conflicting = MOI.ConstraintIndex[ci_saf]
-    MathOptAnalyzer.Infeasibility._categorize_native_iis!(out, model_moi, conflicting)
+    MathOptAnalyzer.Infeasibility._categorize_native_iis!(
+        out,
+        model_moi,
+        conflicting,
+    )
     # Scalar constraint → pushed as an IrreducibleInfeasibleSubset
     @test length(out.iis) == 1
     @test length(out.iis[1].constraint) == 1

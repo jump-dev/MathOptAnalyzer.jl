@@ -279,7 +279,14 @@ function MathOptAnalyzer.analyze(
         catch err
             # Only swallow errors indicating the solver doesn't support
             # compute_conflict! — rethrow anything else
-            if !(err isa Union{MethodError,MOI.UnsupportedError,ErrorException,ArgumentError})
+            if !(
+                err isa Union{
+                    MethodError,
+                    MOI.UnsupportedError,
+                    ErrorException,
+                    ArgumentError,
+                }
+            )
                 rethrow(err)
             end
             @warn(
