@@ -88,8 +88,12 @@ end
 Return `true` if the constraint index is a variable-level constraint
 (i.e., `F == MOI.VariableIndex`).
 """
-_is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex}) = true
-_is_variable_constraint(::MOI.ConstraintIndex) = false
+function _is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex})
+    return true
+end
+function _is_variable_constraint(::MOI.ConstraintIndex)
+    return false
+end
 
 """
     _is_integrality_constraint(ci::MOI.ConstraintIndex)
@@ -102,7 +106,9 @@ function _is_integrality_constraint(
 ) where {S}
     return S <: Union{MOI.Integer,MOI.ZeroOne}
 end
-_is_integrality_constraint(::MOI.ConstraintIndex) = false
+function _is_integrality_constraint(::MOI.ConstraintIndex)
+    return false
+end
 
 """
     _is_bound_constraint(ci::MOI.ConstraintIndex)
@@ -115,7 +121,9 @@ function _is_bound_constraint(
 ) where {S}
     return S <: Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo,MOI.Interval}
 end
-_is_bound_constraint(::MOI.ConstraintIndex) = false
+function _is_bound_constraint(::MOI.ConstraintIndex)
+    return false
+end
 
 """
     _classify_variable_conflict!(out, model, x, bound_cis, has_integrality, integrality_set)
@@ -271,7 +279,7 @@ function MathOptAnalyzer.analyze(
         catch err
             # Only swallow errors indicating the solver doesn't support
             # compute_conflict! — rethrow anything else
-            if !(err isa Union{MethodError,MOI.UnsupportedError,ErrorException})
+            if !(err isa Union{MethodError,MOI.UnsupportedError,ErrorException,ArgumentError})
                 rethrow(err)
             end
             @warn(
