@@ -75,7 +75,9 @@ Return a dictionary mapping constraint indices in the destination model back to
 constraint indices in the source model.
 """
 function _reverse_index_map(index_map::MOI.IndexMap)
-    ret = Dict{MOI.ConstraintIndex,MOI.ConstraintIndex}()
+    return Dict{MOI.ConstraintIndex,MOI.ConstraintIndex}(
+        v => k for (k, v) in index_map.con_map
+    )
     for (k, v) in index_map.con_map
         ret[v] = k
     end
@@ -88,10 +90,11 @@ end
 Return `true` if the constraint index is a variable-level constraint
 (i.e., `F == MOI.VariableIndex`).
 """
-function _is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex})
+_is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex}) = true
     return true
 end
-function _is_variable_constraint(::MOI.ConstraintIndex)
+
+_is_variable_constraint(::MOI.ConstraintIndex) = false
     return false
 end
 
@@ -103,8 +106,8 @@ constraint.
 """
 function _is_integrality_constraint(
     ::MOI.ConstraintIndex{MOI.VariableIndex,S},
-) where {S}
-    return S <: Union{MOI.Integer,MOI.ZeroOne}
+) where {S<: Union{MOI.Integer,MOI.ZeroOne}}
+    return true
 end
 function _is_integrality_constraint(::MOI.ConstraintIndex)
     return false
