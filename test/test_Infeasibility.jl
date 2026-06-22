@@ -991,7 +991,7 @@ function test_coverage()
     try 
         error("Some other error")
     catch err
-        _error_handler(err)
+        MathOptAnalyzer.Infeasibility._error_handler(err)
     end
     return
 end 
