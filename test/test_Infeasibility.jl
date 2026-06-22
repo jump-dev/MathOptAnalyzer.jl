@@ -987,6 +987,16 @@ function test_native_iis_fallback_warning()
     return
 end
 
+function test_coverage()
+    try 
+        error("Some other error")
+    catch err
+        _error_handler(err)
+    end
+    return
+end 
+
+
 end  # module TestInfeasibility
 
 TestInfeasibility.runtests()

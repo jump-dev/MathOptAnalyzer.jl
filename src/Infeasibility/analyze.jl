@@ -78,10 +78,6 @@ function _reverse_index_map(index_map::MOI.IndexMap)
     return Dict{MOI.ConstraintIndex,MOI.ConstraintIndex}(
         v => k for (k, v) in index_map.con_map
     )
-    for (k, v) in index_map.con_map
-        ret[v] = k
-    end
-    return ret
 end
 
 """
