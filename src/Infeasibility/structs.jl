@@ -12,13 +12,22 @@ The `Analyzer` type is used to perform infeasibility analysis on a model.
 ```julia
 julia> data = MathOptAnalyzer.analyze(
     Analyzer(),
-    model,
-    optimizer = nothing,,
+    model;
+    optimizer = nothing,
+    native_iis = false,
 )
 ```
 
-The additional keyword argument `optimizer` is used to specify the optimizer to
-use for the IIS resolver.
+## Keyword arguments
+
+ - `optimizer`: the optimizer to use for the IIS computation. Required for the
+   elastic-filter (MathOptIIS) path and for the native IIS path.
+ - `native_iis::Bool = false`: if `true`, use the solver's built-in
+   `MOI.compute_conflict!` to compute an IIS directly (e.g., Gurobi's
+   `GRBcomputeIIS`). This is typically faster but returns only a single IIS
+   and may not categorize issues as precisely. If the solver does not support
+   native IIS computation, a warning is emitted and the method falls back to
+   the MathOptIIS elastic-filter path.
 """
 struct Analyzer <: MathOptAnalyzer.AbstractAnalyzer end
 
