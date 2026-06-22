@@ -300,6 +300,7 @@ function _error_handler(
             "Native IIS computation failed ($(typeof(err))); " *
             "falling back to MathOptIIS elastic filter.",
         )
+        @error "Error details: $(err)"
     end
     return
 end
