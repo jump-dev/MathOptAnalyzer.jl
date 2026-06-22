@@ -988,14 +988,13 @@ function test_native_iis_fallback_warning()
 end
 
 function test_coverage()
-    try 
+    try
         error("Some other error")
     catch err
-        MathOptAnalyzer.Infeasibility._error_handler(err)
+        MathOptAnalyzer.Infeasibility._error_handler(err, true)
     end
     return
-end 
-
+end
 
 end  # module TestInfeasibility
 
