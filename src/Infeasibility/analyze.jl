@@ -91,12 +91,7 @@ Return `true` if the constraint index is a variable-level constraint
 (i.e., `F == MOI.VariableIndex`).
 """
 _is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex}) = true
-    return true
-end
-
 _is_variable_constraint(::MOI.ConstraintIndex) = false
-    return false
-end
 
 """
     _is_integrality_constraint(ci::MOI.ConstraintIndex)
@@ -106,7 +101,7 @@ constraint.
 """
 function _is_integrality_constraint(
     ::MOI.ConstraintIndex{MOI.VariableIndex,S},
-) where {S<: Union{MOI.Integer,MOI.ZeroOne}}
+) where {S<:Union{MOI.Integer,MOI.ZeroOne}}
     return true
 end
 function _is_integrality_constraint(::MOI.ConstraintIndex)
@@ -121,8 +116,8 @@ Return `true` if the constraint index is a variable bound constraint
 """
 function _is_bound_constraint(
     ::MOI.ConstraintIndex{MOI.VariableIndex,S},
-) where {S}
-    return S <: Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo,MOI.Interval}
+) where {S<:Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo,MOI.Interval}}
+    return true
 end
 function _is_bound_constraint(::MOI.ConstraintIndex)
     return false
@@ -186,7 +181,6 @@ function _categorize_native_iis!(
     var_bounds = Dict{MOI.VariableIndex,Vector{MOI.ConstraintIndex}}()
     var_integrality = Dict{MOI.VariableIndex,Union{MOI.Integer,MOI.ZeroOne}}()
     scalar_constraints = MOI.ConstraintIndex[]
-
     for ci in conflicting
         if _is_bound_constraint(ci)
             x = MOI.VariableIndex(ci.value)
@@ -199,14 +193,12 @@ function _categorize_native_iis!(
             push!(scalar_constraints, ci)
         end
     end
-
     # Classify variable-level conflicts
     for (x, cis) in var_bounds
         has_int = haskey(var_integrality, x)
         int_set = get(var_integrality, x, nothing)
         _classify_variable_conflict!(out, model, x, cis, has_int, int_set)
     end
-
     # If there are scalar constraints in conflict, they form an IIS together
     # with any associated variable bounds
     if !isempty(scalar_constraints)
@@ -247,8 +239,8 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
             cs = try
                 MOI.get(solver, MOI.ConstraintConflictStatus(), ci)
             catch
-                # Some constraint types may not support conflict status query
-                continue
+                # We haven't proven that they are not in the conflict.
+                MOI.MAYBE_IN_CONFLICT
             end
             if cs in (MOI.IN_CONFLICT, MOI.MAYBE_IN_CONFLICT)
                 # Map back to original model index
@@ -274,29 +266,14 @@ function MathOptAnalyzer.analyze(
     model::MOI.ModelLike;
     optimizer = nothing,
     native_iis::Bool = false,
+    warn_unsupported::Bool = true,
 )
     # Use native solver IIS if requested
     if native_iis && optimizer !== nothing
         try
             return _analyze_native_iis(model, optimizer)
         catch err
-            # Only swallow errors indicating the solver doesn't support
-            # compute_conflict! — rethrow anything else
-            if !(
-                err isa Union{
-                    MethodError,
-                    MOI.UnsupportedError,
-                    ErrorException,
-                    ArgumentError,
-                }
-            )
-                rethrow(err)
-            end
-            @warn(
-                "Native IIS computation failed ($(typeof(err))); " *
-                "falling back to MathOptIIS elastic filter.",
-            )
-            @error("Error details: $err")
+            _error_handler(err, warn_unsupported)
         end
     end
     # Fallback: MathOptIIS elastic-filter path
@@ -312,3 +289,19 @@ function MathOptAnalyzer.analyze(
     end
     return out
 end
+
+function _error_handler(
+    err::Union{MethodError,MOI.UnsupportedError,ErrorException,ArgumentError},
+    warn_unsupported::Bool,
+)
+    # Only swallow errors indicating the solver doesn't support compute_conflict! — rethrow anything else
+    if warn_unsupported
+        @warn(
+            "Native IIS computation failed ($(typeof(err))); " *
+            "falling back to MathOptIIS elastic filter.",
+        )
+    end
+    return
+end
+
+_error_handler(err, ::Bool) = rethrow(err)
