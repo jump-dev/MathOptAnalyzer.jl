@@ -87,6 +87,7 @@ Return `true` if the constraint index is a variable-level constraint
 (i.e., `F == MOI.VariableIndex`).
 """
 _is_variable_constraint(::MOI.ConstraintIndex{MOI.VariableIndex}) = true
+
 _is_variable_constraint(::MOI.ConstraintIndex) = false
 
 """
@@ -100,9 +101,8 @@ function _is_integrality_constraint(
 ) where {S<:Union{MOI.Integer,MOI.ZeroOne}}
     return true
 end
-function _is_integrality_constraint(::MOI.ConstraintIndex)
-    return false
-end
+
+_is_integrality_constraint(::MOI.ConstraintIndex) = false
 
 """
     _is_bound_constraint(ci::MOI.ConstraintIndex)
@@ -115,9 +115,8 @@ function _is_bound_constraint(
 ) where {S<:Union{MOI.LessThan,MOI.GreaterThan,MOI.EqualTo,MOI.Interval}}
     return true
 end
-function _is_bound_constraint(::MOI.ConstraintIndex)
-    return false
-end
+
+_is_bound_constraint(::MOI.ConstraintIndex) = false
 
 """
     _classify_variable_conflict!(out, model, x, bound_cis, has_integrality, integrality_set)
@@ -218,16 +217,13 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
     end
     index_map = MOI.copy_to(solver, model)
     reverse_map = _reverse_index_map(index_map)
-
     MOI.optimize!(solver) # make sure model is infeasible 
     MOI.compute_conflict!(solver)
-
     status = MOI.get(solver, MOI.ConflictStatus())
     out = Data()
     if status != MOI.CONFLICT_FOUND
         return out
     end
-
     # Collect all conflicting constraints, mapped back to original model
     conflicting = MOI.ConstraintIndex[]
     for (F, S) in MOI.get(solver, MOI.ListOfConstraintTypesPresent())
@@ -247,7 +243,6 @@ function _analyze_native_iis(model::MOI.ModelLike, optimizer)
             end
         end
     end
-
     # Categorize into typed issue buckets
     _categorize_native_iis!(out, model, conflicting)
     return out
