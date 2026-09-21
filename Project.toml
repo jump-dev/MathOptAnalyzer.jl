@@ -18,6 +18,7 @@ MathOptAnalyzerJuMPExt = "JuMP"
 [compat]
 Dualization = "0.7"
 JuMP = "1.24"
+LinearAlgebra = "1.10"
 MathOptIIS = "0.2"
 MathOptInterface = "1.37"
 julia = "1.10"
